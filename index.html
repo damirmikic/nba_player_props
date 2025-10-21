@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NBA Player Prop Odds Builder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5;
+        }
+
+        .glassmorphic {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .neumorphic-button {
+            background: #f0f2f5;
+            box-shadow: 6px 6px 12px #c5c7ca, -6px -6px 12px #ffffff;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .neumorphic-button:hover {
+            box-shadow: 4px 4px 8px #c5c7ca, -4px -4px 8px #ffffff;
+        }
+        
+        .neumorphic-button:active {
+            box-shadow: inset 4px 4px 8px #c5c7ca, inset -4px -4px 8px #ffffff;
+        }
+
+        .loader {
+            border-top-color: #007aff;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        select {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-image: url('data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="%236b7280" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l4 4 4-4"/></svg>');
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            background-size: 1em;
+        }
+
+        .tab-button.active {
+            color: #007aff;
+            border-bottom: 2px solid #007aff;
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <div class="container mx-auto p-4 md:p-8">
+        
+        <header class="text-center mb-12">
+            <h1 class="text-4xl font-bold text-gray-900 mb-2">NBA Prop Builder</h1>
+            <p class="text-gray-600">Build, customize, and export player prop markets.</p>
+        </header>
+
+        <main>
+            <div id="main-content" class="glassmorphic rounded-2xl shadow-lg p-6 md:p-8">
+                
+                <div id="fetch-section" class="text-center">
+                    <button id="fetchEventsButton" class="neumorphic-button text-gray-800 font-bold py-3 px-8 rounded-full transition duration-300">
+                        Fetch Upcoming Games
+                    </button>
+                </div>
+
+                <div id="game-selection-area" class="hidden space-y-6">
+                     <div>
+                         <label for="eventsDropdown" class="block text-sm font-medium text-gray-700 mb-2">Select a Game</label>
+                         <select id="eventsDropdown" class="w-full p-3 bg-white bg-opacity-80 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+                         </select>
+                     </div>
+                     
+                     <div id="tabs-container" class="hidden">
+                        <div class="border-b border-gray-200">
+                            <nav id="tabs" class="flex space-x-8" aria-label="Tabs">
+                                <button class="tab-button active font-medium py-3 px-1 text-sm" data-tab="builder">CSV Builder</button>
+                                <button class="tab-button text-gray-500 hover:text-gray-700 font-medium py-3 px-1 text-sm" data-tab="all-odds">All Odds</button>
+                            </nav>
+                        </div>
+                        <div id="tab-content" class="mt-6">
+                            <div id="builder-tab-content" class="space-y-4"></div>
+                            <div id="all-odds-tab-content" class="hidden space-y-6"></div>
+                        </div>
+                     </div>
+                </div>
+            </div>
+
+            <div id="loader" class="hidden justify-center items-center mt-8">
+                <div class="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-32 w-32"></div>
+            </div>
+            
+            <div id="error" class="hidden mt-8 text-center bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl relative" role="alert">
+                <strong class="font-bold">Error!</strong>
+                <span class="block sm:inline" id="errorMessage"></span>
+            </div>
+
+            <div id="usage-info-container" class="hidden mt-4 text-center text-sm text-gray-600">
+                <p>API Key Usage (Last Request): <span id="usage-info-details" class="font-medium"></span></p>
+            </div>
+
+        </main>
+    </div>
+
+    <div id="csvPreviewModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="glassmorphic rounded-2xl shadow-xl w-full max-w-4xl">
+            <div class="p-6">
+                <h3 class="text-xl font-semibold text-gray-900 text-center mb-4">CSV Preview</h3>
+                <div class="bg-gray-100 bg-opacity-70 p-4 rounded-xl max-h-96 overflow-auto">
+                    <pre id="csvPreviewContent" class="text-xs sm:text-sm text-gray-700"></pre>
+                </div>
+                <div class="mt-6">
+                    <button id="closeModalButton" class="w-full py-3 px-4 bg-gray-700 text-white font-medium rounded-xl hover:bg-gray-800 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="assignTeamModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div class="glassmorphic rounded-2xl shadow-xl w-full max-w-md">
+            <div class="p-6">
+                <h3 class="text-xl font-semibold text-gray-900 text-center mb-4">Dodeli tim igraču</h3>
+                <p class="text-center mb-4" id="assignTeamPlayerName"></p>
+                <div>
+                    <label for="teamSelectDropdown" class="block text-sm font-medium text-gray-700 mb-2">Izaberi tim</label>
+                    <select id="teamSelectDropdown" class="w-full p-3 bg-white bg-opacity-80 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </select>
+                </div>
+                <div class="mt-6 flex justify-end space-x-4">
+                    <button id="cancelAssignTeamButton" class="py-2 px-4 bg-gray-300 text-gray-800 font-medium rounded-xl hover:bg-gray-400 transition-colors">Otkaži</button>
+                    <button id="saveTeamButton" class="py-2 px-4 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 transition-colors">Sačuvaj</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="toast-notification" class="hidden fixed bottom-5 right-5 bg-green-600 text-white py-3 px-5 rounded-lg shadow-lg z-50 transition-opacity duration-300">
+        Igrač je uspešno sačuvan u bazi podataka!
+    </div>
+
+
+    <script>
+        // API keys are no longer stored here for security. They are managed by Netlify Functions.
+        const sport = 'basketball_nba';
+        const regions = 'us,eu';
+        const oddsFormat = 'decimal';
+
+        const marketsMap = {
+            'player_points': 'Points',
+            'player_rebounds': 'Rebounds',
+            'player_assists': 'Assists',
+            'player_threes': '3-Pointers Made',
+            'player_blocks': 'Blocks',
+            'player_points_rebounds_assists': 'Points+Rebounds+Assists'
+        };
+        const markets = Object.keys(marketsMap).join(',');
+
+        // DOM Elements
+        const fetchEventsButton = document.getElementById('fetchEventsButton');
+        const gameSelectionArea = document.getElementById('game-selection-area');
+        const eventsDropdown = document.getElementById('eventsDropdown');
+        const tabsContainer = document.getElementById('tabs-container');
+        const tabs = document.getElementById('tabs');
+        const builderTabContent = document.getElementById('builder-tab-content');
+        const allOddsTabContent = document.getElementById('all-odds-tab-content');
+        const loader = document.getElementById('loader');
+        const errorDiv = document.getElementById('error');
+        const errorMessage = document.getElementById('errorMessage');
+        const modal = document.getElementById('csvPreviewModal');
+        const closeModalButton = document.getElementById('closeModalButton');
+        const assignTeamModal = document.getElementById('assignTeamModal');
+        const cancelAssignTeamButton = document.getElementById('cancelAssignTeamButton');
+        const saveTeamButton = document.getElementById('saveTeamButton');
+        const teamSelectDropdown = document.getElementById('teamSelectDropdown');
+        const assignTeamPlayerName = document.getElementById('assignTeamPlayerName');
+        
+        // State variables
+        let fetchedEvents = [];
+        let allPlayersData = {};
+        let currentFullGameData = null;
+        let currentEventCommenceTime = null;
+        let selectedDataForExport = {}; 
+        let nbaPlayersData = []; // Changed from nflPlayersData
+
+        // NEW: Function to display API usage info
+        function displayUsageInfo(usageInfo) {
+            const usageContainer = document.getElementById('usage-info-container');
+            const usageDetails = document.getElementById('usage-info-details');
+            if (usageInfo && (usageInfo.remaining || usageInfo.used)) {
+                usageDetails.textContent = `Key: ${usageInfo.keyUsed} | Remaining: ${usageInfo.remaining || 'N/A'} | Used: ${usageInfo.used || 'N/A'}`;
+                usageContainer.classList.remove('hidden');
+            }
+        }
+
+        async function loadNbaPlayersData() { // Renamed from loadNflPlayersData
+            try {
+                // Fetch from the new NBA players function
+                const response = await fetch('/.netlify/functions/get-nba-players');
+                if (!response.ok) {
+                    throw new Error(`HTTP greška! status: ${response.status}`);
+                }
+                nbaPlayersData = await response.json();
+                
+                // Removed NFL-specific logic for "defensive td" / "D/ST"
+
+            } catch (error) {
+                console.error("Neuspešno učitavanje podataka o NBA igračima iz baze:", error);
+                errorMessage.textContent = "Neuspešno učitavanje podataka o NBA igračima. Proverite konzolu za detalje.";
+                errorDiv.classList.remove('hidden');
+            }
+        }
+        
+        function findPlayerTeam(playerName) {
+            // Use nbaPlayersData
+            const player = nbaPlayersData.find(p => p.name === playerName);
+            return player ? player.team : 'N/A';
+        }
+
+        document.addEventListener('DOMContentLoaded', loadNbaPlayersData); // Call the new function
+
+
+        fetchEventsButton.addEventListener('click', async () => {
+            gameSelectionArea.classList.add('hidden');
+            tabsContainer.classList.add('hidden');
+            errorDiv.classList.add('hidden');
+            loader.classList.remove('hidden');
+            loader.classList.add('flex');
+            fetchEventsButton.disabled = true;
+            fetchEventsButton.classList.add('opacity-50', 'cursor-not-allowed');
+
+            try {
+                const cachedEvents = sessionStorage.getItem('nbaEvents'); // Changed cache key
+                if (cachedEvents) {
+                    fetchedEvents = JSON.parse(cachedEvents);
+                } else {
+                    const eventsUrl = `/.netlify/functions/get-events?sport=${sport}`;
+                    const eventsResponse = await fetch(eventsUrl);
+                    if (!eventsResponse.ok) {
+                        const errorData = await eventsResponse.json();
+                        throw new Error(`Failed to fetch events: ${errorData.message || eventsResponse.statusText}`);
+                    }
+                    
+                    const responseBody = await eventsResponse.json();
+                    fetchedEvents = responseBody.data; 
+                    
+                    if (responseBody.usageInfo) {
+                        displayUsageInfo(responseBody.usageInfo);
+                    }
+                    
+                    sessionStorage.setItem('nbaEvents', JSON.stringify(fetchedEvents)); // Changed cache key
+                }
+
+                if (fetchedEvents.length === 0) {
+                     gameSelectionArea.classList.remove('hidden');
+                     eventsDropdown.innerHTML = '<option value="">No upcoming NBA events found.</option>'; // Changed text
+                } else {
+                    populateEventsDropdown(fetchedEvents);
+                    gameSelectionArea.classList.remove('hidden');
+                }
+                document.getElementById('fetch-section').classList.add('hidden');
+
+            } catch (error) {
+                console.error('An error occurred:', error);
+                errorMessage.textContent = error.message;
+                errorDiv.classList.remove('hidden');
+            } finally {
+                loader.classList.add('hidden');
+                loader.classList.remove('flex');
+                fetchEventsButton.disabled = false;
+                fetchEventsButton.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        });
+        
+        closeModalButton.addEventListener('click', () => {
+            modal.classList.add('hidden');
+        });
+
+        tabs.addEventListener('click', (e) => {
+            const button = e.target.closest('.tab-button');
+            if (!button) return;
+            switchTab(button.dataset.tab);
+        });
+        
+        function switchTab(tabName) {
+            tabs.querySelectorAll('.tab-button').forEach(btn => {
+                const isActive = btn.dataset.tab === tabName;
+                btn.classList.toggle('active', isActive);
+                btn.classList.toggle('text-blue-500', isActive);
+                btn.classList.toggle('text-gray-500', !isActive);
+                btn.classList.toggle('hover:text-gray-700', !isActive);
+            });
+
+            builderTabContent.classList.toggle('hidden', tabName !== 'builder');
+            allOddsTabContent.classList.toggle('hidden', tabName !== 'all-odds');
+        }
+
+        function populateEventsDropdown(events) {
+            eventsDropdown.innerHTML = '<option value="">-- Please select a match --</option>'; 
+            events.forEach(event => {
+                const option = document.createElement('option');
+                option.value = event.id;
+                option.dataset.homeTeam = event.home_team;
+                option.dataset.awayTeam = event.away_team;
+                const commenceTime = new Date(event.commence_time).toLocaleString();
+                option.textContent = `${event.home_team} vs ${event.away_team} (${commenceTime})`;
+                eventsDropdown.appendChild(option);
+            });
+        }
+        
+        eventsDropdown.addEventListener('change', async (e) => {
+            const selectedOption = e.target.options[e.target.selectedIndex];
+            const eventId = selectedOption.value;
+            const homeTeam = selectedOption.dataset.homeTeam;
+            const awayTeam = selectedOption.dataset.awayTeam;
+            const selectedEvent = fetchedEvents.find(event => event.id === eventId);
+            currentEventCommenceTime = selectedEvent ? selectedEvent.commence_time : null;
+
+            builderTabContent.innerHTML = '';
+            allOddsTabContent.innerHTML = '';
+            tabsContainer.classList.add('hidden');
+            allPlayersData = {};
+            selectedDataForExport = {};
+            currentFullGameData = null;
+
+            if (!eventId) return;
+            
+            tabsContainer.classList.remove('hidden');
+            const miniLoaderHTML = '<div class="flex justify-center p-8"><div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12"></div></div>';
+            builderTabContent.innerHTML = miniLoaderHTML;
+            allOddsTabContent.innerHTML = miniLoaderHTML;
+
+
+            try {
+                const cacheKey = `nbaOdds_${eventId}`; // Changed cache key
+                const cachedOdds = sessionStorage.getItem(cacheKey);
+
+                if (cachedOdds) {
+                    currentFullGameData = JSON.parse(cachedOdds);
+                } else {
+                    // This URL uses the global 'sport' and 'markets' variables, which are now set for NBA
+                    const oddsUrl = `/.netlify/functions/get-odds?sport=${sport}&eventId=${eventId}&regions=${regions}&markets=${markets}&oddsFormat=${oddsFormat}`;
+                    const res = await fetch(oddsUrl);
+
+                    if (!res.ok) {
+                        const errorData = await res.json();
+                        throw new Error(errorData.message || `HTTP error ${res.status}`);
+                    }
+                    
+                    const responseBody = await res.json();
+                    currentFullGameData = responseBody.data; 
+                    
+                    if (responseBody.usageInfo) {
+                        displayUsageInfo(responseBody.usageInfo);
+                    }
+
+                    sessionStorage.setItem(cacheKey, JSON.stringify(currentFullGameData));
+                }
+                
+                processGameDataForBuilder(currentFullGameData);
+                setupCsvBuilder(homeTeam, awayTeam);
+                renderAllOddsView();
+
+            } catch (error) {
+                const errorHTML = `<p class="text-red-500 text-center">Could not fetch player odds: ${error.message}</p>`;
+                builderTabContent.innerHTML = errorHTML;
+                allOddsTabContent.innerHTML = errorHTML;
+
+            }
+        });
+
+        function processGameDataForBuilder(gameData) {
+            const bookmakers = gameData.bookmakers || [];
+            const pinnacle = bookmakers.find(b => b.key === 'pinnacle');
+            const caesars = bookmakers.find(b => b.title.toLowerCase().includes('caesars'));
+            const draftkings = bookmakers.find(b => b.key === 'draftkings');
+            const betmgm = bookmakers.find(b => b.key === 'betmgm');
+            const bovada = bookmakers.find(b => b.key === 'bovada');
+            const fanatics = bookmakers.find(b => b.key === 'fanatics');
+            const betonline = bookmakers.find(b => b.key === 'betonlineag');
+            const fanduel = bookmakers.find(b => b.key === 'fanduel');
+
+            // Simplified priority for NBA - just use all major bookies
+            const defaultPriority = [pinnacle, caesars, draftkings, betmgm, bovada, fanatics, betonline, fanduel].filter(Boolean);
+            
+            allPlayersData = {};
+            
+            const allPlayerNames = new Set();
+            bookmakers.forEach(bookie => {
+                bookie.markets.forEach(market => {
+                    market.outcomes.forEach(outcome => allPlayerNames.add(outcome.description));
+                });
+            });
+
+
+            allPlayerNames.forEach(playerName => {
+                const addedMarkets = new Set();
+                
+                const findAndAddMarket = (marketKey, priorityList) => {
+                    if (addedMarkets.has(marketKey)) return;
+
+                    for (const bookmaker of priorityList) {
+                        const market = bookmaker.markets.find(m => m.key === marketKey);
+                        if (market) {
+                            const outcomes = market.outcomes.filter(o => o.description === playerName);
+                            if (outcomes.length > 0) {
+                                if (!allPlayersData[playerName]) allPlayersData[playerName] = [];
+                                
+                                outcomes.forEach(outcome => {
+                                    allPlayersData[playerName].push({
+                                        marketKey: market.key,
+                                        marketName: marketsMap[market.key] || market.key,
+                                        outcome: outcome,
+                                        bookmaker: bookmaker.title
+                                    });
+                                });
+                                addedMarkets.add(marketKey);
+                                return;
+                            }
+                        }
+                    }
+                };
+                
+                // Simplified loop for NBA markets
+                Object.keys(marketsMap).forEach(marketKey => {
+                    findAndAddMarket(marketKey, defaultPriority);
+                });
+            });
+        }
+        
+        function setupCsvBuilder(homeTeam, awayTeam) {
+             builderTabContent.innerHTML = '';
+             if (Object.keys(allPlayersData).length === 0 && nbaPlayersData.length === 0) { // Use nbaPlayersData
+                builderTabContent.innerHTML = '<p class="text-center text-gray-500">No player prop markets found for this game.</p>';
+                return;
+            }
+
+            const getDropdownOptions = (selectedTeam = null) => {
+                const teamsToInclude = selectedTeam ? [selectedTeam] : [homeTeam, awayTeam];
+                const teamPlayerNames = nbaPlayersData // Use nbaPlayersData
+                    .filter(p => teamsToInclude.includes(p.team))
+                    .map(p => p.name);
+
+                return teamPlayerNames
+                    .filter(name => allPlayersData[name]) // Removed NFL-specific logic
+                    .sort();
+            };
+
+            const initialOptions = getDropdownOptions();
+
+            const builderHTML = `
+                <div class="space-y-6">
+                    <div>
+                        <label for="leagueTeamDropdown" class="block text-sm font-medium text-gray-700 mb-2">Team for LEAGUE_NAME</label>
+                        <select id="leagueTeamDropdown" class="w-full p-3 bg-white bg-opacity-80 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">-- Select Team --</option>
+                            <option value="${awayTeam}">${awayTeam}</option>
+                            <option value="${homeTeam}">${homeTeam}</option>
+                        </select>
+                    </div>
+                    <div>
+                         <label for="playerAddDropdown" class="block text-sm font-medium text-gray-700 mb-2">Add Player to List</label>
+                         <div class="flex">
+                            <select id="playerAddDropdown" class="w-full p-3 bg-white bg-opacity-80 border border-gray-200 rounded-l-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="">-- Select a player --</option>
+                                ${initialOptions.map(name => `<option value="${name}">${name}</option>`).join('')}
+                            </select>
+                            <button id="addPlayerButton" class="px-5 py-3 bg-blue-600 text-white font-semibold rounded-r-xl hover:bg-blue-700 transition-colors">Add</button>
+                        </div>
+                    </div>
+                </div>
+                <div id="export-list-container" class="mt-6 space-y-4"></div>
+                <div id="export-actions-container" class="hidden mt-8 grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <button id="previewCsvButton" class="w-full py-3 px-4 bg-indigo-600 text-white font-medium rounded-xl hover:bg-indigo-700 transition-colors">Preview CSV</button>
+                    <button id="exportCsvButton" class="w-full py-3 px-4 bg-green-600 text-white font-medium rounded-xl hover:bg-green-700 transition-colors">Export to CSV</button>
+                    <button id="resetCsvButton" class="w-full py-3 px-4 bg-red-600 text-white font-medium rounded-xl hover:bg-red-700 transition-colors">Reset</button>
+                    <button id="newCsvButton" class="w-full py-3 px-4 bg-yellow-500 text-white font-medium rounded-xl hover:bg-yellow-600 transition-colors">New CSV</button>
+                </div>
+            `;
+            builderTabContent.innerHTML = builderHTML;
+
+            const leagueTeamDropdown = document.getElementById('leagueTeamDropdown');
+            const playerAddDropdown = document.getElementById('playerAddDropdown');
+
+            leagueTeamDropdown.addEventListener('change', (e) => {
+                const selectedTeam = e.target.value;
+                const newOptions = getDropdownOptions(selectedTeam);
+                playerAddDropdown.innerHTML = `<option value="">-- Select a player --</option>` + 
+                                              newOptions.map(name => `<option value="${name}">${name}</option>`).join('');
+            });
+            
+            document.getElementById('addPlayerButton').addEventListener('click', handleAddPlayer);
+            document.getElementById('previewCsvButton').addEventListener('click', previewCsv);
+            document.getElementById('exportCsvButton').addEventListener('click', exportToCsv);
+            document.getElementById('export-list-container').addEventListener('click', handleRemoveMarket);
+            document.getElementById('export-list-container').addEventListener('input', handleDataChange);
+            document.getElementById('resetCsvButton').addEventListener('click', resetCsvForm);
+            document.getElementById('newCsvButton').addEventListener('click', resetCsvForm);
+        }
+
+        function resetCsvForm() {
+            selectedDataForExport = {};
+            const leagueTeamDropdown = document.getElementById('leagueTeamDropdown');
+            if(leagueTeamDropdown) leagueTeamDropdown.value = '';
+            const playerAddDropdown = document.getElementById('playerAddDropdown');
+            if(playerAddDropdown) playerAddDropdown.value = '';
+            renderSelectedPlayersAndMarkets();
+        }
+        
+        function handleAddPlayer() {
+            const playerDropdown = document.getElementById('playerAddDropdown');
+            const playerName = playerDropdown.value;
+            if (playerName && !selectedDataForExport[playerName]) {
+                if (allPlayersData[playerName]) {
+                    selectedDataForExport[playerName] = JSON.parse(JSON.stringify(allPlayersData[playerName]));
+                } 
+                // Removed NFL-specific 'else if' block
+                renderSelectedPlayersAndMarkets();
+            }
+            playerDropdown.value = '';
+        }
+
+        
+        function handleRemoveMarket(event) {
+            const removeButton = event.target.closest('.remove-market-btn');
+            if (!removeButton) return;
+            const { player, marketKey } = removeButton.dataset;
+            if (selectedDataForExport[player]) {
+                selectedDataForExport[player] = selectedDataForExport[player].filter(market => market.marketKey !== marketKey);
+                if (selectedDataForExport[player].length === 0) {
+                    delete selectedDataForExport[player];
+                }
+                renderSelectedPlayersAndMarkets();
+            }
+        }
+
+        function handleDataChange(event) {
+            const input = event.target;
+            if (!input.classList.contains('editable-input')) return;
+            const { player, marketKey, type } = input.dataset;
+            const newValue = input.value;
+            if (!selectedDataForExport[player]) return;
+            selectedDataForExport[player].forEach(market => {
+                if (market.marketKey === marketKey) {
+                    if (type === 'line') {
+                        market.outcome.point = parseFloat(newValue) || 0;
+                    } else if (type.toLowerCase() === market.outcome.name.toLowerCase()) {
+                        market.outcome.price = parseFloat(newValue) || 0;
+                    } else if (type === '1') { // This part will likely not be used for NBA, but is harmless to keep
+                         market.outcome.price = parseFloat(newValue) || 0;
+                    }
+                }
+            });
+        }
+
+        function renderSelectedPlayersAndMarkets() {
+            const listContainer = document.getElementById('export-list-container');
+            const actionsContainer = document.getElementById('export-actions-container');
+            listContainer.innerHTML = '';
+            if (Object.keys(selectedDataForExport).length === 0) {
+                actionsContainer.classList.add('hidden');
+                return;
+            }
+            for (const playerName in selectedDataForExport) {
+                const marketsForPlayer = selectedDataForExport[playerName];
+                const groupedMarkets = marketsForPlayer.reduce((acc, marketData) => {
+                    const key = marketData.marketKey;
+                    if (!acc[key]) acc[key] = { marketName: marketData.marketName, outcomes: {} };
+                    acc[key].outcomes[marketData.outcome.name] = marketData.outcome;
+                    return acc;
+                }, {});
+                let tableHTML = `
+                    <div class="glassmorphic rounded-xl p-4">
+                        <h4 class="text-lg font-semibold text-gray-800 mb-3">${playerName}</h4>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full bg-white bg-opacity-70 text-sm">
+                                <thead class="bg-gray-50 bg-opacity-70">
+                                    <tr>
+                                        <th class="px-4 py-2 text-left font-medium">Market</th>
+                                        <th class="px-4 py-2 text-left font-medium">Line</th>
+                                        <th class="px-4 py-2 text-left font-medium">Under</th>
+                                        <th class="px-4 py-2 text-left font-medium">Over</th>
+                                        <th class="px-4 py-2 text-left font-medium">1</th>
+                                        <th class="px-4 py-2 text-right font-medium"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>`;
+                for (const marketKey in groupedMarkets) {
+                    const market = groupedMarkets[marketKey];
+                    const underOutcome = market.outcomes['Under'];
+                    const overOutcome = market.outcomes['Over'];
+                    const yesOutcome = market.outcomes['Yes']; // For TD-like markets, unused for NBA
+                    const editableInputBaseClasses = "editable-input w-full p-2 bg-gray-100 bg-opacity-70 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500";
+                    tableHTML += `
+                        <tr class="border-t border-gray-200">
+                            <td class="px-4 py-2">${market.marketName}</td>
+                            <td class="px-4 py-2"><input type="text" class="${editableInputBaseClasses}" value="${underOutcome?.point || overOutcome?.point || ''}" data-player="${playerName}" data-market-key="${marketKey}" data-type="line"></td>
+                            <td class="px-4 py-2"><input type="text" class="${editableInputBaseClasses}" value="${underOutcome?.price || ''}" data-player="${playerName}" data-market-key="${marketKey}" data-type="under"></td>
+                            <td class="px-4 py-2"><input type="text" class="${editableInputBaseClasses}" value="${overOutcome?.price || ''}" data-player="${playerName}" data-market-key="${marketKey}" data-type="over"></td>
+                            <td class="px-4 py-2"><input type="text" class="${editableInputBaseClasses}" value="${yesOutcome?.price || ''}" data-player="${playerName}" data-market-key="${marketKey}" data-type="1"></td>
+                            <td class="px-4 py-2 text-right"><button class="text-red-500 hover:text-red-700 remove-market-btn" data-player="${playerName}" data-market-key="${marketKey}">Remove</button></td>
+                        </tr>`;
+                }
+                tableHTML += `</tbody></table></div></div>`;
+                listContainer.innerHTML += tableHTML;
+            }
+            actionsContainer.classList.remove('hidden');
+        }
+
+        function generateCsvData() {
+            const leagueTeam = document.getElementById('leagueTeamDropdown').value;
+            if (!leagueTeam) {
+                alert('Please select a team for the LEAGUE_NAME.');
+                return null;
+            }
+            if (Object.keys(selectedDataForExport).length === 0) {
+                alert('The export list is empty. Please add some players and markets.');
+                return null;
+            }
+            const kickoffDate = new Date(currentEventCommenceTime);
+            const day = String(kickoffDate.getDate()).padStart(2, '0');
+            const month = String(kickoffDate.getMonth() + 1).padStart(2, '0');
+            const year = kickoffDate.getFullYear();
+            const dateStr = `${day}.${month}.${year}`;
+            const timeStr = kickoffDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+            let csvRows = [];
+            const headers = ['Datum', 'Vreme', 'Sifra', 'Domacin', 'Gost', '1', 'X', '2', 'GR', 'U', 'O', 'Yes', 'No'];
+            csvRows.push(headers);
+            csvRows.push(['MATCH_NAME:NBA Player Props']); // Changed
+            csvRows.push([`LEAGUE_NAME:${leagueTeam} NBA Specijal`]); // Changed
+            
+            // Updated formatting function for NBA
+            const formatMarketNameForCsv = (marketKey, marketName) => {
+                switch(marketKey) {
+                    case 'player_points': return 'Total Points';
+                    case 'player_rebounds': return 'Total Rebounds';
+                    case 'player_assists': return 'Total Assists';
+                    case 'player_threes': return 'Total 3-Pointers Made';
+                    case 'player_blocks': return 'Total Blocks';
+                    case 'player_points_rebounds_assists': return 'Total Pts+Rebs+Asts';
+                    default: return marketName;
+                }
+            };
+
+            for (const playerName in selectedDataForExport) {
+                const marketsForPlayer = selectedDataForExport[playerName];
+                const groupedMarkets = marketsForPlayer.reduce((acc, marketData) => {
+                    const key = marketData.marketKey;
+                    if (!acc[key]) acc[key] = { marketName: marketData.marketName, outcomes: {} };
+                    acc[key].outcomes[marketData.outcome.name] = marketData.outcome;
+                    return acc;
+                }, {});
+                for (const marketKey in groupedMarkets) {
+                    const market = groupedMarkets[marketKey];
+                    const row = Array(13).fill('');
+                    row[0] = dateStr;
+                    row[1] = timeStr;
+                    row[3] = playerName;
+                    row[4] = formatMarketNameForCsv(marketKey, market.marketName);
+                    const under = market.outcomes['Under'];
+                    const over = market.outcomes['Over'];
+                    const yes = market.outcomes['Yes'];
+                    
+                    // NBA markets are Over/Under, so this logic remains correct
+                    if (under || over) {
+                        row[8] = under?.point || over?.point || '';
+                        row[9] = under?.price || '';
+                        row[10] = over?.price || '';
+                    } else if (yes) {
+                        // This might be used for markets like "To Record a Double-Double", if you add them
+                        row[5] = yes.price || ''; 
+                    }
+                    csvRows.push(row);
+                }
+            };
+            return csvRows;
+        }
+
+        function previewCsv() {
+            const csvRows = generateCsvData();
+            if (!csvRows) return;
+            const csvContentString = csvRows.map(e => e.join(",")).join("\n");
+            document.getElementById('csvPreviewContent').textContent = csvContentString;
+            modal.classList.remove('hidden');
+        }
+
+        function exportToCsv() {
+            const csvRows = generateCsvData();
+            if (!csvRows) return;
+            let csvContent = "data:text/csv;charset=utf-8," + csvRows.map(e => e.join(",")).join("\r\n");
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            const leagueTeam = document.getElementById('leagueTeamDropdown').value;
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `${leagueTeam}_nba_player_props.csv`); // Changed filename
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        
+        allOddsTabContent.addEventListener('click', (event) => {
+            const addButton = event.target.closest('.add-player-from-all-odds-btn');
+            if (addButton) {
+                const playerName = addButton.dataset.playerName;
+                if (!playerName || !allPlayersData[playerName]) return;
+
+                if (selectedDataForExport[playerName]) {
+                    alert('Player is already added to the CSV Builder.');
+                    return;
+                }
+
+                selectedDataForExport[playerName] = JSON.parse(JSON.stringify(allPlayersData[playerName]));
+                renderSelectedPlayersAndMarkets();
+                
+                addButton.textContent = 'Added';
+                addButton.disabled = true;
+                addButton.classList.add('bg-green-600', 'cursor-not-allowed');
+            }
+            
+            const assignButton = event.target.closest('.assign-team-btn');
+            if (assignButton) {
+                const playerName = assignButton.dataset.playerName;
+                openAssignTeamModal(playerName);
+            }
+        });
+
+        cancelAssignTeamButton.addEventListener('click', () => {
+            assignTeamModal.classList.add('hidden');
+        });
+
+        saveTeamButton.addEventListener('click', async () => {
+            const playerName = saveTeamButton.dataset.playerName;
+            const selectedTeam = teamSelectDropdown.value;
+            if (playerName && selectedTeam) {
+                await assignTeamToPlayer(playerName, selectedTeam);
+                assignTeamModal.classList.add('hidden');
+            }
+        });
+        
+        function openAssignTeamModal(playerName) {
+            assignTeamPlayerName.textContent = playerName;
+            saveTeamButton.dataset.playerName = playerName;
+
+            // Use nbaPlayersData
+            const allTeams = [...new Set(nbaPlayersData.map(p => p.team).filter(t => t && t !== "Multiple Teams"))].sort();
+
+            teamSelectDropdown.innerHTML = '<option value="">-- Izaberite tim --</option>' +
+                                          allTeams.map(team => `<option value="${team}">${team}</option>`).join('');
+
+            assignTeamModal.classList.remove('hidden');
+        }
+
+        async function assignTeamToPlayer(playerName, teamName) {
+            // Update local NBA data
+            const playerIndex = nbaPlayersData.findIndex(p => p.name === playerName);
+            if (playerIndex > -1) {
+                nbaPlayersData[playerIndex].team = teamName;
+            } else {
+                nbaPlayersData.push({ name: playerName, team: teamName });
+            }
+
+            // Re-render the view
+            renderAllOddsView();
+            
+            // Send request to the new NBA update function
+            try {
+                const response = await fetch('/.netlify/functions/update-nba-players', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ playerName, teamName }),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message + (errorData.details ? ` Detalji: ${errorData.details}` : ''));
+                }
+                
+                console.log(`Tim za igrača ${playerName} je uspešno sačuvan u bazi.`);
+
+                const toast = document.getElementById('toast-notification');
+                toast.classList.remove('hidden');
+                setTimeout(() => {
+                    toast.classList.add('hidden');
+                }, 3000);
+
+            } catch (error) {
+                console.error('Greška pri čuvanju podataka:', error);
+                errorMessage.textContent = `Greška pri čuvanju podataka: ${error.message}`;
+                errorDiv.classList.remove('hidden');
+            }
+        }
+
+        function renderAllOddsView() {
+            allOddsTabContent.innerHTML = '';
+            const bookmakers = currentFullGameData?.bookmakers;
+
+            if (!bookmakers || bookmakers.length === 0) {
+                allOddsTabContent.innerHTML = '<p class="text-center text-gray-500">No odds available for this game.</p>';
+                return;
+            }
+
+            const allAvailableMarkets = {};
+            bookmakers.forEach(bookie => {
+                bookie.markets.forEach(market => {
+                    if (!allAvailableMarkets[market.key]) {
+                        allAvailableMarkets[market.key] = { players: {} };
+                    }
+                    market.outcomes.forEach(outcome => {
+                        if (!allAvailableMarkets[market.key].players[outcome.description]) {
+                            allAvailableMarkets[market.key].players[outcome.description] = {};
+                        }
+                    });
+                });
+            });
+
+            let contentHTML = '';
+            for (const marketKey in allAvailableMarkets) {
+                let isOverUnder = false;
+                const firstBookmakerWithMarket = bookmakers.find(b => b.markets.some(m => m.key === marketKey));
+                if (firstBookmakerWithMarket) {
+                    const marketSample = firstBookmakerWithMarket.markets.find(m => m.key === marketKey);
+                    // All NBA markets are Over/Under, so this check is perfect
+                    if (marketSample && marketSample.outcomes.some(o => o.name === 'Over' || o.name === 'Under')) {
+                        isOverUnder = true;
+                    }
+                }
+                
+                contentHTML += `<div class="glassmorphic rounded-xl p-4">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-3">${marketsMap[marketKey] || marketKey}</h3>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full bg-white bg-opacity-70 text-sm">
+                            <thead class="bg-gray-50 bg-opacity-70">
+                                <tr>
+                                    <th class="px-4 py-2 text-left font-medium">Player</th>`;
+                bookmakers.forEach(bookie => {
+                    contentHTML += `<th class="px-4 py-2 text-center font-medium">${bookie.title}</th>`;
+                });
+                contentHTML += `<th class="px-4 py-2 text-right font-medium">Action</th></tr></thead><tbody>`;
+
+                const players = Object.keys(allAvailableMarkets[marketKey].players).sort();
+                players.forEach(playerName => {
+                    const team = findPlayerTeam(playerName); // This now uses nbaPlayersData
+                    const isAlreadyAdded = !!selectedDataForExport[playerName];
+                    
+                    let teamHTML = `<span class="text-xs text-gray-500 font-normal">(${team})</span>`;
+                    if (team === 'N/A') {
+                        teamHTML += ` <button class="assign-team-btn text-blue-500 hover:underline text-xs" data-player-name="${playerName}">Dodeli tim</button>`;
+                    }
+
+                    contentHTML += `<tr class="border-t border-gray-200">
+                        <td class="px-4 py-2 font-medium">
+                            ${playerName} ${teamHTML}
+                        </td>`;
+                    bookmakers.forEach(bookie => {
+                        let cellContent = '-';
+                        const market = bookie.markets.find(m => m.key === marketKey);
+                        if (market) {
+                            const outcomes = market.outcomes.filter(o => o.description === playerName);
+                            if (outcomes.length > 0) {
+                                if (isOverUnder) {
+                                    const over = outcomes.find(o => o.name === 'Over');
+                                    const under = outcomes.find(o => o.name === 'Under');
+                                    cellContent = `
+                                        <div class="text-center text-xs">
+                                            ${over ? `<div>O ${over.point} (${over.price})</div>` : ''}
+                                            ${under ? `<div>U ${under.point} (${under.price})</div>` : ''}
+                                        </div>
+                                    `;
+                                } else {
+                                    // Fallback for non-O/U markets (e.g., "To Make a 3-Pointer")
+                                    cellContent = `<div class="text-center">${outcomes[0].price}</div>`;
+                                }
+                            }
+                        }
+                        contentHTML += `<td class="px-4 py-2">${cellContent}</td>`;
+                    });
+                    
+                    contentHTML += `
+                        <td class="px-4 py-2 text-right">
+                            <button 
+                                class="add-player-from-all-odds-btn text-white font-bold py-1 px-3 rounded-lg text-xs transition-colors ${isAlreadyAdded ? 'bg-green-600 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}" 
+                                data-player-name="${playerName}"
+                                ${isAlreadyAdded ? 'disabled' : ''}>
+                                ${isAlreadyAdded ? 'Added' : 'Add'}
+                            </button>
+                        </td>
+                    </tr>`;
+                });
+                contentHTML += `</tbody></table></div></div>`;
+            }
+            allOddsTabContent.innerHTML = contentHTML;
+        }
+
+    </script>
+</body>
+</html>
