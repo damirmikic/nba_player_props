@@ -61,6 +61,10 @@
 </head>
 <body class="text-gray-800">
 
+    <div id="api-usage-tracker" class="hidden fixed top-4 right-4 z-50 text-white py-2 px-4 rounded-lg shadow-lg text-sm font-medium">
+        API Requests Remaining: <span id="api-requests-remaining">N/A</span>
+    </div>
+
     <div class="container mx-auto p-4 md:p-8">
         
         <header class="text-center mb-12">
@@ -132,7 +136,6 @@
     </div>
     
     <script>
-        // API keys are no longer stored here for security. They are managed by Netlify Functions.
         const sport = 'basketball_nba';
         const regions = 'us,eu';
         const oddsFormat = 'decimal';
@@ -161,8 +164,6 @@
         const modal = document.getElementById('csvPreviewModal');
         const closeModalButton = document.getElementById('closeModalButton');
         
-        // DOM elementi za modal su UKLONJENI
-        
         // State variables
         let fetchedEvents = [];
         let allPlayersData = {};
@@ -171,20 +172,48 @@
         let selectedDataForExport = {}; 
         let nbaPlayersData = []; 
 
+        // *** AŽURIRANA FUNKCIJA ***
         function displayUsageInfo(usageInfo) {
+            // 1. Handle the bottom usage info container (as before)
             const usageContainer = document.getElementById('usage-info-container');
             const usageDetails = document.getElementById('usage-info-details');
             if (usageInfo && (usageInfo.remaining || usageInfo.used)) {
                 usageDetails.textContent = `Key: ${usageInfo.keyUsed} | Remaining: ${usageInfo.remaining || 'N/A'} | Used: ${usageInfo.used || 'N/A'}`;
                 usageContainer.classList.remove('hidden');
             }
+
+            // 2. Handle the new top-right tracker
+            const usageTracker = document.getElementById('api-usage-tracker');
+            const remainingSpan = document.getElementById('api-requests-remaining');
+            
+            if (usageInfo && usageInfo.remaining) {
+                const remaining = parseInt(usageInfo.remaining, 10);
+                remainingSpan.textContent = remaining;
+                
+                // Add warning class if below 50
+                if (remaining < 50) {
+                    usageTracker.classList.add('bg-red-600');
+                    usageTracker.classList.remove('bg-blue-600', 'bg-gray-500');
+                } else {
+                    usageTracker.classList.add('bg-blue-600');
+                    usageTracker.classList.remove('bg-red-600', 'bg-gray-500');
+                }
+                
+                usageTracker.classList.remove('hidden');
+
+            } else if (usageInfo) {
+                // Show the tracker even if 'remaining' is not available
+                remainingSpan.textContent = 'N/A';
+                usageTracker.classList.add('bg-gray-500'); // Use a neutral color
+                usageTracker.classList.remove('bg-red-600', 'bg-blue-600');
+                usageTracker.classList.remove('hidden');
+            }
+            // Ako usageInfo ne postoji, tracker ostaje sakriven
         }
 
-        // *** IZMENJENA FUNKCIJA ***
         async function loadNbaPlayersData() { 
             try {
-                // Fetch direktno iz JSON fajla
-                const response = await fetch('./nba_players.json'); // Putanja do vašeg fajla
+                const response = await fetch('./nba_players.json'); 
                 if (!response.ok) {
                     throw new Error(`HTTP greška! status: ${response.status}`);
                 }
@@ -218,6 +247,11 @@
                 const cachedEvents = sessionStorage.getItem('nbaEvents'); 
                 if (cachedEvents) {
                     fetchedEvents = JSON.parse(cachedEvents);
+                    // Ako uzimamo iz keša, probaj da prikažeš poslednje zapamćeno stanje potrošnje
+                    const lastUsage = sessionStorage.getItem('lastApiUsage');
+                    if(lastUsage) {
+                        displayUsageInfo(JSON.parse(lastUsage));
+                    }
                 } else {
                     const eventsUrl = `/.netlify/functions/get-events?sport=${sport}`;
                     const eventsResponse = await fetch(eventsUrl);
@@ -231,6 +265,7 @@
                     
                     if (responseBody.usageInfo) {
                         displayUsageInfo(responseBody.usageInfo);
+                        sessionStorage.setItem('lastApiUsage', JSON.stringify(responseBody.usageInfo)); // Pamti poslednje stanje
                     }
                     
                     sessionStorage.setItem('nbaEvents', JSON.stringify(fetchedEvents)); 
@@ -322,6 +357,11 @@
 
                 if (cachedOdds) {
                     currentFullGameData = JSON.parse(cachedOdds);
+                    // Prikazujemo poslednje zapamćeno stanje potrošnje
+                    const lastUsage = sessionStorage.getItem('lastApiUsage');
+                    if(lastUsage) {
+                        displayUsageInfo(JSON.parse(lastUsage));
+                    }
                 } else {
                     const oddsUrl = `/.netlify/functions/get-odds?sport=${sport}&eventId=${eventId}&regions=${regions}&markets=${markets}&oddsFormat=${oddsFormat}`;
                     const res = await fetch(oddsUrl);
@@ -336,6 +376,7 @@
                     
                     if (responseBody.usageInfo) {
                         displayUsageInfo(responseBody.usageInfo);
+                        sessionStorage.setItem('lastApiUsage', JSON.stringify(responseBody.usageInfo)); // Pamti poslednje stanje
                     }
 
                     sessionStorage.setItem(cacheKey, JSON.stringify(currentFullGameData));
@@ -694,12 +735,7 @@
                 addButton.disabled = true;
                 addButton.classList.add('bg-green-600', 'cursor-not-allowed');
             }
-            
-            // Event listener za 'assign-team-btn' je UKLONJEN
         });
-
-        // Funkcije 'cancelAssignTeamButton.addEventListener', 'saveTeamButton.addEventListener',
-        // 'openAssignTeamModal' i 'assignTeamToPlayer' su UKLONJENE.
 
         function renderAllOddsView() {
             allOddsTabContent.innerHTML = '';
@@ -730,7 +766,7 @@
                 const firstBookmakerWithMarket = bookmakers.find(b => b.markets.some(m => m.key === marketKey));
                 if (firstBookmakerWithMarket) {
                     const marketSample = firstBookmakerWithMarket.markets.find(m => m.key === marketKey);
-                    if (marketSample && marketSample.outcomes.some(o => o.name === 'Over' || o.name === 'Under')) {
+                    if (marketSample && marketSample.outcomes.some(o => o.name === 'Over' || o.name ===m === 'Under')) {
                         isOverUnder = true;
                     }
                 }
@@ -752,8 +788,6 @@
                     const team = findPlayerTeam(playerName); 
                     const isAlreadyAdded = !!selectedDataForExport[playerName];
                     
-                    // *** IZMENJENA LINIJA ***
-                    // Uklonjeno dugme "Dodeli tim"
                     let teamHTML = `<span class="text-xs text-gray-500 font-normal">(${team})</span>`;
 
                     contentHTML += `<tr class="border-t border-gray-200">
