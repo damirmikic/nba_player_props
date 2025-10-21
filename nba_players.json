@@ -1,898 +1,326 @@
 [
-  {
-    "name": "Trae Young",
-    "team": "Atlanta Hawks"
-  },
-  {
-    "name": "Dyson Daniels",
-    "team": "Atlanta Hawks"
-  },
-  {
-    "name": "Zaccharie Risacher",
-    "team": "Atlanta Hawks"
-  },
-  {
-    "name": "Jalen Johnson",
-    "team": "Atlanta Hawks"
-  },
-  {
-    "name": "Kristaps Porziņģis",
-    "team": "Atlanta Hawks"
-  },
-  {
-    "name": "Onyeka Okongwu",
-    "team": "Atlanta Hawks"
-  },
-  {
-    "name": "Luke Kennard",
-    "team": "Atlanta Hawks"
-  },
-  {
-    "name": "Nickeil Alexander-Walker",
-    "team": "Atlanta Hawks"
-  },
-  {
-    "name": "Egor Dёmin",
-    "team": "Brooklyn Nets"
-  },
-  {
-    "name": "Cam Thomas",
-    "team": "Brooklyn Nets"
-  },
-  {
-    "name": "Terance Mann",
-    "team": "Brooklyn Nets"
-  },
-  {
-    "name": "Michael Porter Jr.",
-    "team": "Brooklyn Nets"
-  },
-  {
-    "name": "Nic Claxton",
-    "team": "Brooklyn Nets"
-  },
-  {
-    "name": "Day’Ron Sharpe",
-    "team": "Brooklyn Nets"
-  },
-  {
-    "name": "Noah Clowney",
-    "team": "Brooklyn Nets"
-  },
-  {
-    "name": "Dariq Whitehead",
-    "team": "Brooklyn Nets"
-  },
-  {
-    "name": "Derrick White",
-    "team": "Boston Celtics"
-  },
-  {
-    "name": "Payton Pritchard",
-    "team": "Boston Celtics"
-  },
-  {
-    "name": "Jaylen Brown",
-    "team": "Boston Celtics"
-  },
-  {
-    "name": "Sam Hauser",
-    "team": "Boston Celtics"
-  },
-  {
-    "name": "Luka Garza",
-    "team": "Boston Celtics"
-  },
-  {
-    "name": "Neemias Queta",
-    "team": "Boston Celtics"
-  },
-  {
-    "name": "Anfernee Simons",
-    "team": "Boston Celtics"
-  },
-  {
-    "name": "Chris Boucher",
-    "team": "Boston Celtics"
-  },
-  {
-    "name": "LaMelo Ball",
-    "team": "Charlotte Hornets"
-  },
-  {
-    "name": "Kon Knueppel",
-    "team": "Charlotte Hornets"
-  },
-  {
-    "name": "Brandon Miller",
-    "team": "Charlotte Hornets"
-  },
-  {
-    "name": "Miles Bridges",
-    "team": "Charlotte Hornets"
-  },
-  {
-    "name": "Mason Plumlee",
-    "team": "Charlotte Hornets"
-  },
-  {
-    "name": "Ryan Kalkbrenner",
-    "team": "Charlotte Hornets"
-  },
-  {
-    "name": "Liam McNeeley",
-    "team": "Charlotte Hornets"
-  },
-  {
-    "name": "Collin Sexton",
-    "team": "Charlotte Hornets"
-  },
-  {
-    "name": "Josh Giddey",
-    "team": "Chicago Bulls"
-  },
-  {
-    "name": "Coby White",
-    "team": "Chicago Bulls"
-  },
-  {
-    "name": "Ayo Dosunmu",
-    "team": "Chicago Bulls"
-  },
-  {
-    "name": "Matas Buzelis",
-    "team": "Chicago Bulls"
-  },
-  {
-    "name": "Nikola Vučević",
-    "team": "Chicago Bulls"
-  },
-  {
-    "name": "Tre Jones",
-    "team": "Chicago Bulls"
-  },
-  {
-    "name": "Zach Collins",
-    "team": "Chicago Bulls"
-  },
-  {
-    "name": "Darius Garland",
-    "team": "Cleveland Cavaliers"
-  },
-  {
-    "name": "Donovan Mitchell",
-    "team": "Cleveland Cavaliers"
-  },
-  {
-    "name": "De’Andre Hunter",
-    "team": "Cleveland Cavaliers"
-  },
-  {
-    "name": "Evan Mobley",
-    "team": "Cleveland Cavaliers"
-  },
-  {
-    "name": "Jarrett Allen",
-    "team": "Cleveland Cavaliers"
-  },
-  {
-    "name": "Lonzo Ball",
-    "team": "Cleveland Cavaliers"
-  },
-  {
-    "name": "Larry Nance",
-    "team": "Cleveland Cavaliers"
-  },
-  {
-    "name": "D’Angelo Russell",
-    "team": "Dallas Mavericks"
-  },
-  {
-    "name": "Klay Thompson",
-    "team": "Dallas Mavericks"
-  },
-  {
-    "name": "Cooper Flagg",
-    "team": "Dallas Mavericks"
-  },
-  {
-    "name": "Anthony Davis",
-    "team": "Dallas Mavericks"
-  },
-  {
-    "name": "Dereck Lively",
-    "team": "Dallas Mavericks"
-  },
-  {
-    "name": "PJ Washington",
-    "team": "Dallas Mavericks"
-  },
-  {
-    "name": "Max Christie",
-    "team": "Dallas Mavericks"
-  },
-  {
-    "name": "Brandon Williams",
-    "team": "Dallas Mavericks"
-  },
-  {
-    "name": "Jamal Murray",
-    "team": "Denver Nuggets"
-  },
-  {
-    "name": "Christian Braun",
-    "team": "Denver Nuggets"
-  },
-  {
-    "name": "Cam Johnson",
-    "team": "Denver Nuggets"
-  },
-  {
-    "name": "Aaron Gordon",
-    "team": "Denver Nuggets"
-  },
-  {
-    "name": "Nikola Jokić",
-    "team": "Denver Nuggets"
-  },
-  {
-    "name": "Bruce Brown",
-    "team": "Denver Nuggets"
-  },
-  {
-    "name": "Jonas Valančiūnas",
-    "team": "Denver Nuggets"
-  },
-  {
-    "name": "Peyton Watson",
-    "team": "Denver Nuggets"
-  },
-  {
-    "name": "Cade Cunningham",
-    "team": "Detroit Pistons"
-  },
-  {
-    "name": "Jaden Ivey",
-    "team": "Detroit Pistons"
-  },
-  {
-    "name": "Ausar Thompson",
-    "team": "Detroit Pistons"
-  },
-  {
-    "name": "Tobias Harris",
-    "team": "Detroit Pistons"
-  },
-  {
-    "name": "Jalen Duren",
-    "team": "Detroit Pistons"
-  },
-  {
-    "name": "Caris LeVert",
-    "team": "Detroit Pistons"
-  },
-  {
-    "name": "Ron Holland",
-    "team": "Detroit Pistons"
-  },
-  {
-    "name": "Steph Curry",
-    "team": "Golden State Warriors"
-  },
-  {
-    "name": "Brandin Podziemski",
-    "team": "Golden State Warriors"
-  },
-  {
-    "name": "Jimmy Butler III",
-    "team": "Golden State Warriors"
-  },
-  {
-    "name": "Draymond Green",
-    "team": "Golden State Warriors"
-  },
-  {
-    "name": "Quinten Post",
-    "team": "Golden State Warriors"
-  },
-  {
-    "name": "Jonathan Kuminga",
-    "team": "Golden State Warriors"
-  },
-  {
-    "name": "De’Anthony Melton",
-    "team": "Golden State Warriors"
-  },
-  {
-    "name": "Fred VanVleet",
-    "team": "Houston Rockets"
-  },
-  {
-    "name": "Amen Thompson",
-    "team": "Houston Rockets"
-  },
-  {
-    "name": "Kevin Durant",
-    "team": "Houston Rockets"
-  },
-  {
-    "name": "Jabari Smith Jr.",
-    "team": "Houston Rockets"
-  },
-  {
-    "name": "Alperen Sengun",
-    "team": "Houston Rockets"
-  },
-  {
-    "name": "Tari Eason",
-    "team": "Houston Rockets"
-  },
-  {
-    "name": "Reed Sheppard",
-    "team": "Houston Rockets"
-  },
-  {
-    "name": "Clint Capela",
-    "team": "Houston Rockets"
-  },
-  {
-    "name": "Andrew Nembhard",
-    "team": "Indiana Pacers"
-  },
-  {
-    "name": "Bennedict Mathurin",
-    "team": "Indiana Pacers"
-  },
-  {
-    "name": "Aaron Nesmith",
-    "team": "Indiana Pacers"
-  },
-  {
-    "name": "Pascal Siakam",
-    "team": "Indiana Pacers"
-  },
-  {
-    "name": "Jay Huff",
-    "team": "Indiana Pacers"
-  },
-  {
-    "name": "Isaiah Jackson",
-    "team": "Indiana Pacers"
-  },
-  {
-    "name": "Obi Toppin",
-    "team": "Indiana Pacers"
-  },
-  {
-    "name": "James Harden",
-    "team": "LA Clippers"
-  },
-  {
-    "name": "Bradley Beal",
-    "team": "LA Clippers"
-  },
-  {
-    "name": "Kawhi Leonard",
-    "team": "LA Clippers"
-  },
-  {
-    "name": "John Collins",
-    "team": "LA Clippers"
-  },
-  {
-    "name": "Ivica Zubac",
-    "team": "LA Clippers"
-  },
-  {
-    "name": "Chris Paul",
-    "team": "LA Clippers"
-  },
-  {
-    "name": "Brook Lopez",
-    "team": "LA Clippers"
-  },
-  {
-    "name": "Luka Dončić",
-    "team": "Los Angeles Lakers"
-  },
-  {
-    "name": "Austin Reaves",
-    "team": "Los Angeles Lakers"
-  },
-  {
-    "name": "Rui Hachimura",
-    "team": "Los Angeles Lakers"
-  },
-  {
-    "name": "LeBron James",
-    "team": "Los Angeles Lakers"
-  },
-  {
-    "name": "Deandre Ayton",
-    "team": "Los Angeles Lakers"
-  },
-  {
-    "name": "Marcus Smart",
-    "team": "Los Angeles Lakers"
-  },
-  {
-    "name": "Jarred Vanderbilt",
-    "team": "Los Angeles Lakers"
-  },
-  {
-    "name": "Ja Morant",
-    "team": "Memphis Grizzlies"
-  },
-  {
-    "name": "Kentavious Caldwell-Pope",
-    "team": "Memphis Grizzlies"
-  },
-  {
-    "name": "Jaylen Wells",
-    "team": "Memphis Grizzlies"
-  },
-  {
-    "name": "Jaren Jackson Jr.",
-    "team": "Memphis Grizzlies"
-  },
-  {
-    "name": "Zach Edey",
-    "team": "Memphis Grizzlies"
-  },
-  {
-    "name": "Santi Aldama",
-    "team": "Memphis Grizzlies"
-  },
-  {
-    "name": "Ty Jerome",
-    "team": "Memphis Grizzlies"
-  },
-  {
-    "name": "Tyler Herro",
-    "team": "Miami Heat"
-  },
-  {
-    "name": "Norman Powell",
-    "team": "Miami Heat"
-  },
-  {
-    "name": "Andrew Wiggins",
-    "team": "Miami Heat"
-  },
-  {
-    "name": "Bam Adebayo",
-    "team": "Miami Heat"
-  },
-  {
-    "name": "Kel’el Ware",
-    "team": "Miami Heat"
-  },
-  {
-    "name": "Nikola Jović",
-    "team": "Miami Heat"
-  },
-  {
-    "name": "Dru Smith",
-    "team": "Miami Heat"
-  },
-  {
-    "name": "Kevin Porter Jr.",
-    "team": "Milwaukee Bucks"
-  },
-  {
-    "name": "Gary Trent",
-    "team": "Milwaukee Bucks"
-  },
-  {
-    "name": "Kyle Kuzma",
-    "team": "Milwaukee Bucks"
-  },
-  {
-    "name": "Giannis Antetokounmpo",
-    "team": "Milwaukee Bucks"
-  },
-  {
-    "name": "Myles Turner",
-    "team": "Milwaukee Bucks"
-  },
-  {
-    "name": "Cole Anthony",
-    "team": "Milwaukee Bucks"
-  },
-  {
-    "name": "Ryan Rollins",
-    "team": "Milwaukee Bucks"
-  },
-  {
-    "name": "Bobby Portis",
-    "team": "Milwaukee Bucks"
-  },
-  {
-    "name": "Donte DiVincenzo",
-    "team": "Minnesota Timberwolves"
-  },
-  {
-    "name": "Anthony Edwards",
-    "team": "Minnesota Timberwolves"
-  },
-  {
-    "name": "Jaden McDaniels",
-    "team": "Minnesota Timberwolves"
-  },
-  {
-    "name": "Julius Randle",
-    "team": "Minnesota Timberwolves"
-  },
-  {
-    "name": "Rudy Gobert",
-    "team": "Minnesota Timberwolves"
-  },
-  {
-    "name": "Naz Reid",
-    "team": "Minnesota Timberwolves"
-  },
-  {
-    "name": "Terrence Shannon",
-    "team": "Minnesota Timberwolves"
-  },
-  {
-    "name": "Jordan Poole",
-    "team": "New Orleans Pelicans"
-  },
-  {
-    "name": "Herb Jones",
-    "team": "New Orleans Pelicans"
-  },
-  {
-    "name": "Trey Murphy III",
-    "team": "New Orleans Pelicans"
-  },
-  {
-    "name": "Zion Williamson",
-    "team": "New Orleans Pelicans"
-  },
-  {
-    "name": "Yves Missi",
-    "team": "New Orleans Pelicans"
-  },
-  {
-    "name": "Derik Queen",
-    "team": "New Orleans Pelicans"
-  },
-  {
-    "name": "Saddiq Bey",
-    "team": "New Orleans Pelicans"
-  },
-  {
-    "name": "Jalen Brunson",
-    "team": "New York Knicks"
-  },
-  {
-    "name": "Mikal Bridges",
-    "team": "New York Knicks"
-  },
-  {
-    "name": "Josh Hart",
-    "team": "New York Knicks"
-  },
-  {
-    "name": "OG Anunoby",
-    "team": "New York Knicks"
-  },
-  {
-    "name": "Karl-Anthony Towns",
-    "team": "New York Knicks"
-  },
-  {
-    "name": "Mitchell Robinson",
-    "team": "New York Knicks"
-  },
-  {
-    "name": "Jordan Clarkson",
-    "team": "New York Knicks"
-  },
-  {
-    "name": "Shai Gilgeous-Alexander",
-    "team": "Oklahoma City Thunder"
-  },
-  {
-    "name": "Lu Dort",
-    "team": "Oklahoma City Thunder"
-  },
-  {
-    "name": "Jalen Williams",
-    "team": "Oklahoma City Thunder"
-  },
-  {
-    "name": "Chet Holmgren",
-    "team": "Oklahoma City Thunder"
-  },
-  {
-    "name": "Isaiah Hartenstein",
-    "team": "Oklahoma City Thunder"
-  },
-  {
-    "name": "Cason Wallace",
-    "team": "Oklahoma City Thunder"
-  },
-  {
-    "name": "Aaron Wiggins",
-    "team": "Oklahoma City Thunder"
-  },
-  {
-    "name": "Nikola Topić",
-    "team": "Oklahoma City Thunder"
-  },
-  {
-    "name": "Jalen Suggs",
-    "team": "Orlando Magic"
-  },
-  {
-    "name": "Desmond Bane",
-    "team": "Orlando Magic"
-  },
-  {
-    "name": "Franz Wagner",
-    "team": "Orlando Magic"
-  },
-  {
-    "name": "Paolo Banchero",
-    "team": "Orlando Magic"
-  },
-  {
-    "name": "Wendell Carter Jr.",
-    "team": "Orlando Magic"
-  },
-  {
-    "name": "Goga Bitadze",
-    "team": "Orlando Magic"
-  },
-  {
-    "name": "Jase Richardson",
-    "team": "Orlando Magic"
-  },
-  {
-    "name": "Orlando Robinson",
-    "team": "Orlando Magic"
-  },
-  {
-    "name": "Tyrese Maxey",
-    "team": "Philadelphia 76ers"
-  },
-  {
-    "name": "VJ Edgecombe",
-    "team": "Philadelphia 76ers"
-  },
-  {
-    "name": "Paul George",
-    "team": "Philadelphia 76ers"
-  },
-  {
-    "name": "Kelly Oubre Jr.",
-    "team": "Philadelphia 76ers"
-  },
-  {
-    "name": "Joel Embiid",
-    "team": "Philadelphia 76ers"
-  },
-  {
-    "name": "Adem Bona",
-    "team": "Philadelphia 76ers"
-  },
-  {
-    "name": "Jared McCain",
-    "team": "Philadelphia 76ers"
-  },
-  {
-    "name": "Quentin Grimes",
-    "team": "Philadelphia 76ers"
-  },
-  {
-    "name": "Devin Booker",
-    "team": "Phoenix Suns"
-  },
-  {
-    "name": "Jalen Green",
-    "team": "Phoenix Suns"
-  },
-  {
-    "name": "Dillon Brooks",
-    "team": "Phoenix Suns"
-  },
-  {
-    "name": "Ryan Dunn",
-    "team": "Phoenix Suns"
-  },
-  {
-    "name": "Mark Williams",
-    "team": "Phoenix Suns"
-  },
-  {
-    "name": "Jordan Goodwin",
-    "team": "Phoenix Suns"
-  },
-  {
-    "name": "Khaman Maluach",
-    "team": "Phoenix Suns"
-  },
-  {
-    "name": "Scoot Henderson",
-    "team": "Portland Trail Blazers"
-  },
-  {
-    "name": "Shaedon Sharpe",
-    "team": "Portland Trail Blazers"
-  },
-  {
-    "name": "Toumani Camara",
-    "team": "Portland Trail Blazers"
-  },
-  {
-    "name": "Deni Avdija",
-    "team": "Portland Trail Blazers"
-  },
-  {
-    "name": "Donovan Clingan",
-    "team": "Portland Trail Blazers"
-  },
-  {
-    "name": "Jerami Grant",
-    "team": "Portland Trail Blazers"
-  },
-  {
-    "name": "Yang Hansen",
-    "team": "Portland Trail Blazers"
-  },
-  {
-    "name": "Jrue Holiday",
-    "team": "Portland Trail Blazers"
-  },
-  {
-    "name": "Dennis Schröder",
-    "team": "Sacramento Kings"
-  },
-  {
-    "name": "Zach LaVine",
-    "team": "Sacramento Kings"
-  },
-  {
-    "name": "DeMar DeRozan",
-    "team": "Sacramento Kings"
-  },
-  {
-    "name": "Keegan Murray",
-    "team": "Sacramento Kings"
-  },
-  {
-    "name": "Domantas Sabonis",
-    "team": "Sacramento Kings"
-  },
-  {
-    "name": "Malik Monk",
-    "team": "Sacramento Kings"
-  },
-  {
-    "name": "Keon Ellis",
-    "team": "Sacramento Kings"
-  },
-  {
-    "name": "Nique Clifford",
-    "team": "Sacramento Kings"
-  },
-  {
-    "name": "De’Aaron Fox",
-    "team": "San Antonio Spurs"
-  },
-  {
-    "name": "Stephon Castle",
-    "team": "San Antonio Spurs"
-  },
-  {
-    "name": "Devin Vassell",
-    "team": "San Antonio Spurs"
-  },
-  {
-    "name": "Harrison Barnes",
-    "team": "San Antonio Spurs"
-  },
-  {
-    "name": "Victor Wembanyama",
-    "team": "San Antonio Spurs"
-  },
-  {
-    "name": "Dylan Harper",
-    "team": "San Antonio Spurs"
-  },
-  {
-    "name": "Jeremy Sochan",
-    "team": "San Antonio Spurs"
-  },
-  {
-    "name": "Immanuel Quickley",
-    "team": "Toronto Raptors"
-  },
-  {
-    "name": "RJ Barrett",
-    "team": "Toronto Raptors"
-  },
-  {
-    "name": "Brandon Ingram",
-    "team": "Toronto Raptors"
-  },
-  {
-    "name": "Scottie Barnes",
-    "team": "Toronto Raptors"
-  },
-  {
-    "name": "Jakob Poeltl",
-    "team": "Toronto Raptors"
-  },
-  {
-    "name": "Collin Murray-Boyles",
-    "team": "Toronto Raptors"
-  },
-  {
-    "name": "Gradey Dick",
-    "team": "Toronto Raptors"
-  },
-  {
-    "name": "Isaiah Collier",
-    "team": "Utah Jazz"
-  },
-  {
-    "name": "Keyonte George",
-    "team": "Utah Jazz"
-  },
-  {
-    "name": "Ace Bailey",
-    "team": "Utah Jazz"
-  },
-  {
-    "name": "Lauri Markkanen",
-    "team": "Utah Jazz"
-  },
-  {
-    "name": "Walker Kessler",
-    "team": "Utah Jazz"
-  },
-  {
-    "name": "Taylor Hendricks",
-    "team": "Utah Jazz"
-  },
-  {
-    "name": "Walter Clayton",
-    "team": "Utah Jazz"
-  },
-  {
-    "name": "Kyle Filipowski",
-    "team": "Utah Jazz"
-  },
-  {
-    "name": "CJ McCollum",
-    "team": "Washington Wizards"
-  },
-  {
-    "name": "Khris Middleton",
-    "team": "Washington Wizards"
-  },
-  {
-    "name": "Bilal Coulibaly",
-    "team": "Washington Wizards"
-  },
-  {
-    "name": "Kyshawn George",
-    "team": "Washington Wizards"
-  },
-  {
-    "name": "Alex Sarr",
-    "team": "Washington Wizards"
-  },
-  {
-    "name": "Cam Whitmore",
-    "team": "Washington Wizards"
-  },
-  {
-    "name": "Tre Johnson",
-    "team": "Washington Wizards"
-  }
+  {"name": "Steven Adams", "team": "Houston Rockets"},
+  {"name": "Isaiah Crawford", "team": "Houston Rockets"},
+  {"name": "Clint Capela", "team": "Houston Rockets"},
+  {"name": "Kevin Durant", "team": "Houston Rockets"},
+  {"name": "J.D. Davison", "team": "Houston Rockets"},
+  {"name": "Dorian Finney-Smith", "team": "Houston Rockets"},
+  {"name": "Jeff Green", "team": "Houston Rockets"},
+  {"name": "Kevon Harris", "team": "Houston Rockets"},
+  {"name": "Aaron Holiday", "team": "Houston Rockets"},
+  {"name": "Tari Eason", "team": "Houston Rockets"},
+  {"name": "Dyson Daniels", "team": "Atlanta Hawks"},
+  {"name": "N'Faly Dante", "team": "Atlanta Hawks"},
+  {"name": "Luke Kennard", "team": "Atlanta Hawks"},
+  {"name": "Nickeil Alexander-Walker", "team": "Atlanta Hawks"},
+  {"name": "Nikola Djurisic", "team": "Atlanta Hawks"},
+  {"name": "Mouhamed Gueye", "team": "Atlanta Hawks"},
+  {"name": "Caleb Houstan", "team": "Atlanta Hawks"},
+  {"name": "Jalen Johnson", "team": "Atlanta Hawks"},
+  {"name": "Vit Krejci", "team": "Atlanta Hawks"},
+  {"name": "De'Andre Hunter", "team": "Cleveland Cavaliers"},
+  {"name": "Lonzo Ball", "team": "Cleveland Cavaliers"},
+  {"name": "Jarrett Allen", "team": "Cleveland Cavaliers"},
+  {"name": "Darius Garland", "team": "Cleveland Cavaliers"},
+  {"name": "Thomas Bryant", "team": "Cleveland Cavaliers"},
+  {"name": "Kevin Huerter", "team": "Chicago Bulls"},
+  {"name": "Jevon Carter", "team": "Chicago Bulls"},
+  {"name": "Zach Collins", "team": "Chicago Bulls"},
+  {"name": "Josh Giddey", "team": "Chicago Bulls"},
+  {"name": "Matas Buzelis", "team": "Chicago Bulls"},
+  {"name": "Noa Essengue", "team": "Chicago Bulls"},
+  {"name": "Trentyn Flowers", "team": "Chicago Bulls"},
+  {"name": "Tre Jones", "team": "Chicago Bulls"},
+  {"name": "Chris Boucher", "team": "Boston Celtics"},
+  {"name": "Luka Garza", "team": "Boston Celtics"},
+  {"name": "Jaylen Brown", "team": "Boston Celtics"},
+  {"name": "Hugo Gonzalez", "team": "Boston Celtics"},
+  {"name": "Ron Harper", "team": "Boston Celtics"},
+  {"name": "Sam Hauser", "team": "Boston Celtics"},
+  {"name": "Bam Adebayo", "team": "Miami Heat"},
+  {"name": "Simone Fontecchio", "team": "Miami Heat"},
+  {"name": "Vladislav Goldin", "team": "Miami Heat"},
+  {"name": "Myron Gardner", "team": "Miami Heat"},
+  {"name": "Jaime Jaquez, Jr.", "team": "Miami Heat"},
+  {"name": "Keshad Johnson", "team": "Miami Heat"},
+  {"name": "Kasparas Jakucionis", "team": "Miami Heat"},
+  {"name": "Pelle Larsson", "team": "Miami Heat"},
+  {"name": "Tyler Herro", "team": "Miami Heat"},
+  {"name": "Nikola Jovic", "team": "Miami Heat"},
+  {"name": "Cole Anthony", "team": "Milwaukee Bucks"},
+  {"name": "Alex Antetokounmpo", "team": "Milwaukee Bucks"},
+  {"name": "Giannis Antetokounmpo", "team": "Milwaukee Bucks"},
+  {"name": "Thanasis Antetokounmpo", "team": "Milwaukee Bucks"},
+  {"name": "Amir Coffey", "team": "Milwaukee Bucks"},
+  {"name": "A.J. Green", "team": "Milwaukee Bucks"},
+  {"name": "Gary Harris", "team": "Milwaukee Bucks"},
+  {"name": "Kyle Kuzma", "team": "Milwaukee Bucks"},
+  {"name": "Andre Jackson, Jr.", "team": "Milwaukee Bucks"},
+  {"name": "OG Anunoby", "team": "New York Knicks"},
+  {"name": "Mikal Bridges", "team": "New York Knicks"},
+  {"name": "Jalen Brunson", "team": "New York Knicks"},
+  {"name": "Jordan Clarkson", "team": "New York Knicks"},
+  {"name": "Pacome Dadiet", "team": "New York Knicks"},
+  {"name": "Josh Hart", "team": "New York Knicks"},
+  {"name": "Isaiah Hartenstein", "team": "New York Knicks"},
+  {"name": "Ariel Hukporti", "team": "New York Knicks"},
+  {"name": "Trey Jemison", "team": "New York Knicks"},
+  {"name": "Kevin McCullar, Jr.", "team": "New York Knicks"},
+  {"name": "Tyler Kolek", "team": "New York Knicks"},
+  {"name": "Mohamed Diawara", "team": "New York Knicks"},
+  {"name": "Tosan Evbuomwan", "team": "New York Knicks"},
+  {"name": "Miles McBride", "team": "New York Knicks"},
+  {"name": "Jose Alvarado", "team": "New Orleans Pelicans"},
+  {"name": "Trey Alexander", "team": "New Orleans Pelicans"},
+  {"name": "Saddiq Bey", "team": "New Orleans Pelicans"},
+  {"name": "Jordan Hawkins", "team": "New Orleans Pelicans"},
+  {"name": "Hunter Dickinson", "team": "New Orleans Pelicans"},
+  {"name": "Jeremiah Fears", "team": "New Orleans Pelicans"},
+  {"name": "Bryce McGowens", "team": "New Orleans Pelicans"},
+  {"name": "Karlo Matkovic", "team": "New Orleans Pelicans"},
+  {"name": "Kevon Looney", "team": "New Orleans Pelicans"},
+  {"name": "Herb Jones", "team": "New Orleans Pelicans"},
+  {"name": "Ousmane Dieng", "team": "Oklahoma City Thunder"},
+  {"name": "Brooks Barnhizer", "team": "Oklahoma City Thunder"},
+  {"name": "Branden Carlson", "team": "Oklahoma City Thunder"},
+  {"name": "Alex Caruso", "team": "Oklahoma City Thunder"},
+  {"name": "Isaiah Joe", "team": "Oklahoma City Thunder"},
+  {"name": "Luguentz Dort", "team": "Oklahoma City Thunder"},
+  {"name": "Shai Gilgeous-Alexander", "team": "Oklahoma City Thunder"},
+  {"name": "Chet Holmgren", "team": "Oklahoma City Thunder"},
+  {"name": "Isaiah Hartenstein", "team": "Oklahoma City Thunder"},
+  {"name": "Paolo Banchero", "team": "Orlando Magic"},
+  {"name": "Desmond Bane", "team": "Orlando Magic"},
+  {"name": "Goga Bitadze", "team": "Orlando Magic"},
+  {"name": "Anthony Black", "team": "Orlando Magic"},
+  {"name": "Jamal Cain", "team": "Orlando Magic"},
+  {"name": "Wendell Carter, Jr.", "team": "Orlando Magic"},
+  {"name": "Colin Castleton", "team": "Orlando Magic"},
+  {"name": "Tristan Da Silva", "team": "Orlando Magic"},
+  {"name": "Jett Howard", "team": "Orlando Magic"},
+  {"name": "Jonathan Isaac", "team": "Orlando Magic"},
+  {"name": "Tyus Jones", "team": "Orlando Magic"},
+  {"name": "Deandre Ayton", "team": "Los Angeles Lakers"},
+  {"name": "Deni Avdija", "team": "Los Angeles Lakers"},
+  {"name": "Rui Hachimura", "team": "Los Angeles Lakers"},
+  {"name": "Jaxson Hayes", "team": "Los Angeles Lakers"},
+  {"name": "LeBron James", "team": "Los Angeles Lakers"},
+  {"name": "Bronny James", "team": "Los Angeles Lakers"},
+  {"name": "Luka Doncic", "team": "Los Angeles Lakers"},
+  {"name": "Maxi Kleber", "team": "Los Angeles Lakers"},
+  {"name": "Christian Koloko", "team": "Los Angeles Lakers"},
+  {"name": "Dalton Knecht", "team": "Los Angeles Lakers"},
+  {"name": "Jake LaRavia", "team": "Los Angeles Lakers"},
+  {"name": "Chris Manon", "team": "Los Angeles Lakers"},
+  {"name": "Bradley Beal", "team": "Los Angeles Clippers"},
+  {"name": "Nicolas Batum", "team": "Los Angeles Clippers"},
+  {"name": "Bogdan Bogdanovic", "team": "Los Angeles Clippers"},
+  {"name": "Kobe Brown", "team": "Los Angeles Clippers"},
+  {"name": "James Harden", "team": "Los Angeles Clippers"},
+  {"name": "Kris Dunn", "team": "Los Angeles Clippers"},
+  {"name": "John Collins", "team": "Los Angeles Clippers"},
+  {"name": "Kawhi Leonard", "team": "Los Angeles Clippers"},
+  {"name": "Brook Lopez", "team": "Los Angeles Clippers"},
+  {"name": "Derrick Jones", "team": "Los Angeles Clippers"},
+  {"name": "Terance Mann", "team": "Los Angeles Clippers"},
+  {"name": "E.J. Liddell", "team": "Brooklyn Nets"},
+  {"name": "Haywood Highsmith", "team": "Brooklyn Nets"},
+  {"name": "Tyrese Martin", "team": "Brooklyn Nets"},
+  {"name": "Noah Clowney", "team": "Brooklyn Nets"},
+  {"name": "Nicolas Claxton", "team": "Brooklyn Nets"},
+  {"name": "Egor Demin", "team": "Brooklyn Nets"},
+  {"name": "Tyson Etienne", "team": "Brooklyn Nets"},
+  {"name": "Bennedict Mathurin", "team": "Brooklyn Nets"},
+  {"name": "T.J. McConnell", "team": "Indiana Pacers"},
+  {"name": "Tony Bradley", "team": "Indiana Pacers"},
+  {"name": "RayJ Dennis", "team": "Indiana Pacers"},
+  {"name": "Johnny Furphy", "team": "Indiana Pacers"},
+  {"name": "James Huff", "team": "Indiana Pacers"},
+  {"name": "Isaiah Jackson", "team": "Indiana Pacers"},
+  {"name": "Quenton Jackson", "team": "Indiana Pacers"},
+  {"name": "Kam Jones", "team": "Indiana Pacers"},
+  {"name": "Tyrese Haliburton", "team": "Indiana Pacers"},
+  {"name": "Bennedict Mathurin", "team": "Indiana Pacers"},
+  {"name": "Tre Mann", "team": "Charlotte Hornets"},
+  {"name": "LaMelo Ball", "team": "Charlotte Hornets"},
+  {"name": "Miles Bridges", "team": "Charlotte Hornets"},
+  {"name": "Moussa Diabate", "team": "Charlotte Hornets"},
+  {"name": "Pat Connaughton", "team": "Charlotte Hornets"},
+  {"name": "Josh Green", "team": "Charlotte Hornets"},
+  {"name": "Ryan Kalkbrenner", "team": "Charlotte Hornets"},
+  {"name": "Kon Knueppel", "team": "Charlotte Hornets"},
+  {"name": "Liam McNeeley", "team": "Charlotte Hornets"},
+  {"name": "Sion James", "team": "Charlotte Hornets"},
+  {"name": "Ochai Agbaji", "team": "Toronto Raptors"},
+  {"name": "Scottie Barnes", "team": "Toronto Raptors"},
+  {"name": "R.J. Barrett", "team": "Toronto Raptors"},
+  {"name": "Jamison Battle", "team": "Toronto Raptors"},
+  {"name": "Gradey Dick", "team": "Toronto Raptors"},
+  {"name": "Brandon Ingram", "team": "Toronto Raptors"},
+  {"name": "Chucky Hepburn", "team": "Toronto Raptors"},
+  {"name": "A.J. Lawson", "team": "Toronto Raptors"},
+  {"name": "Sandro Mamukelashvili", "team": "Toronto Raptors"},
+  {"name": "Alijah Martin", "team": "Toronto Raptors"},
+  {"name": "Dominick Barlow", "team": "Philadelphia 76ers"},
+  {"name": "Adem Bona", "team": "Philadelphia 76ers"},
+  {"name": "Johni Broome", "team": "Philadelphia 76ers"},
+  {"name": "V.J. Edgecombe", "team": "Philadelphia 76ers"},
+  {"name": "Justin Edwards", "team": "Philadelphia 76ers"},
+  {"name": "Joel Embiid", "team": "Philadelphia 76ers"},
+  {"name": "Eric Gordon", "team": "Philadelphia 76ers"},
+  {"name": "Paul George", "team": "Philadelphia 76ers"},
+  {"name": "Quentin Grimes", "team": "Philadelphia 76ers"},
+  {"name": "Andre Drummond", "team": "Philadelphia 76ers"},
+  {"name": "Kyle Lowry", "team": "Philadelphia 76ers"},
+  {"name": "Tyrese Maxey", "team": "Philadelphia 76ers"},
+  {"name": "Jared McCain", "team": "Philadelphia 76ers"},
+  {"name": "Harrison Barnes", "team": "San Antonio Spurs"},
+  {"name": "Bismack Biyombo", "team": "San Antonio Spurs"},
+  {"name": "Carter Bryant", "team": "San Antonio Spurs"},
+  {"name": "De'Aaron Fox", "team": "San Antonio Spurs"},
+  {"name": "Stephon Castle", "team": "San Antonio Spurs"},
+  {"name": "Julian Champagnie", "team": "San Antonio Spurs"},
+  {"name": "Dylan Harper", "team": "San Antonio Spurs"},
+  {"name": "Harrison Ingram", "team": "San Antonio Spurs"},
+  {"name": "Keldon Johnson", "team": "San Antonio Spurs"},
+  {"name": "Asa Newell", "team": "Atlanta Hawks"},
+  {"name": "Eli N'Diaye", "team": "Atlanta Hawks"},
+  {"name": "Onyeka Okongwu", "team": "Atlanta Hawks"},
+  {"name": "Kristaps Porzingis", "team": "Atlanta Hawks"},
+  {"name": "Zaccharie Risacher", "team": "Atlanta Hawks"},
+  {"name": "Brandon Miller", "team": "Charlotte Hornets"},
+  {"name": "Drew Peterson", "team": "Charlotte Hornets"},
+  {"name": "Antonio Reeves", "team": "Charlotte Hornets"},
+  {"name": "Collin Sexton", "team": "Charlotte Hornets"},
+  {"name": "Tidjane Salaun", "team": "Charlotte Hornets"},
+  {"name": "K.J. Simpson", "team": "Charlotte Hornets"},
+  {"name": "Liam McNeeley", "team": "Charlotte Hornets"},
+  {"name": "Mason Plumlee", "team": "Charlotte Hornets"},
+  {"name": "Julian Phillips", "team": "Chicago Bulls"},
+  {"name": "Emanuel Miller", "team": "Chicago Bulls"},
+  {"name": "Isaac Okoro", "team": "Chicago Bulls"},
+  {"name": "Jalen Smith", "team": "Chicago Bulls"},
+  {"name": "Lachlan Olbrich", "team": "Chicago Bulls"},
+  {"name": "Craig Porter, Jr.", "team": "Cleveland Cavaliers"},
+  {"name": "Donovan Mitchell", "team": "Cleveland Cavaliers"},
+  {"name": "Evan Mobley", "team": "Cleveland Cavaliers"},
+  {"name": "Larry Nance, Jr.", "team": "Cleveland Cavaliers"},
+  {"name": "Sam Merrill", "team": "Cleveland Cavaliers"},
+  {"name": "Max Strus", "team": "Cleveland Cavaliers"},
+  {"name": "Tyrese Proctor", "team": "Cleveland Cavaliers"},
+  {"name": "Josh Minott", "team": "Boston Celtics"},
+  {"name": "Payton Pritchard", "team": "Boston Celtics"},
+  {"name": "Jayson Tatum", "team": "Boston Celtics"},
+  {"name": "Neemias Queta", "team": "Boston Celtics"},
+  {"name": "Baylor Scheierman", "team": "Boston Celtics"},
+  {"name": "Max Shulga", "team": "Boston Celtics"},
+  {"name": "Anfernee Simons", "team": "Boston Celtics"},
+  {"name": "Drake Powell", "team": "Brooklyn Nets"},
+  {"name": "Michael Porter, Jr.", "team": "Brooklyn Nets"},
+  {"name": "Day'Ron Sharpe", "team": "Brooklyn Nets"},
+  {"name": "Ben Saraf", "team": "Brooklyn Nets"},
+  {"name": "Jalen Pickett", "team": "Denver Nuggets"},
+  {"name": "Jamal Murray", "team": "Denver Nuggets"},
+  {"name": "Zeke Nnaji", "team": "Denver Nuggets"},
+  {"name": "Julian Strawther", "team": "Denver Nuggets"},
+  {"name": "Paul Reed, Jr.", "team": "Detroit Pistons"},
+  {"name": "Marcus Sasser", "team": "Detroit Pistons"},
+  {"name": "Isaiah Stewart II", "team": "Detroit Pistons"},
+  {"name": "Duncan Robinson", "team": "Detroit Pistons"},
+  {"name": "Tolu Smith", "team": "Detroit Pistons"},
+  {"name": "Ryan Nembhard", "team": "Dallas Mavericks"},
+  {"name": "D'Angelo Russell", "team": "Dallas Mavericks"},
+  {"name": "Dwight Powell", "team": "Dallas Mavericks"},
+  {"name": "Andrew Nembhard", "team": "Indiana Pacers"},
+  {"name": "Aaron Nesmith", "team": "Indiana Pacers"},
+  {"name": "Pascal Siakam", "team": "Indiana Pacers"},
+  {"name": "Ben Sheppard", "team": "Indiana Pacers"},
+  {"name": "Taelon Peter", "team": "Indiana Pacers"},
+  {"name": "De'Anthony Melton", "team": "Golden State Warriors"},
+  {"name": "Moses Moody", "team": "Golden State Warriors"},
+  {"name": "Gary Payton II", "team": "Golden State Warriors"},
+  {"name": "Brandin Podziemski", "team": "Golden State Warriors"},
+  {"name": "Quinten Post", "team": "Golden State Warriors"},
+  {"name": "Will Richard", "team": "Golden State Warriors"},
+  {"name": "Gui Santos", "team": "Golden State Warriors"},
+  {"name": "Pat Spencer", "team": "Golden State Warriors"},
+  {"name": "Jackson Rowe", "team": "Golden State Warriors"},
+  {"name": "Davion Mitchell", "team": "Miami Heat"},
+  {"name": "Norman Powell", "team": "Miami Heat"},
+  {"name": "Terry Rozier", "team": "Miami Heat"},
+  {"name": "Dru Smith", "team": "Miami Heat"},
+  {"name": "Olivier-Maxence Prosper", "team": "Memphis Grizzlies"},
+  {"name": "Ja Morant", "team": "Memphis Grizzlies"},
+  {"name": "Scotty Pippen, Jr.", "team": "Memphis Grizzlies"},
+  {"name": "Javon Small", "team": "Memphis Grizzlies"},
+  {"name": "Cam Spencer", "team": "Memphis Grizzlies"},
+  {"name": "Leonard Miller", "team": "Minnesota Timberwolves"},
+  {"name": "Julius Randle", "team": "Minnesota Timberwolves"},
+  {"name": "Naz Reid", "team": "Minnesota Timberwolves"},
+  {"name": "Terrence Shannon, Jr.", "team": "Minnesota Timberwolves"},
+  {"name": "Kelly Oubre, Jr.", "team": "Philadelphia 76ers"},
+  {"name": "Hunter Sallis", "team": "Philadelphia 76ers"},
+  {"name": "Chris Paul", "team": "Los Angeles Clippers"},
+  {"name": "Jordan Miller", "team": "Los Angeles Clippers"},
+  {"name": "Yanic Konan Niederhauser", "team": "Los Angeles Clippers"},
+  {"name": "Kobe Sanders", "team": "Los Angeles Clippers"},
+  {"name": "Austin Reaves", "team": "Los Angeles Lakers"},
+  {"name": "Marcus Smart", "team": "Los Angeles Lakers"},
+  {"name": "Nick Smith, Jr.", "team": "Los Angeles Lakers"},
+  {"name": "Bryce McGowens", "team": "New Orleans Pelicans"},
+  {"name": "Yves Missi", "team": "New Orleans Pelicans"},
+  {"name": "Trey Murphy III", "team": "New Orleans Pelicans"},
+  {"name": "Dejounte Murray", "team": "New Orleans Pelicans"},
+  {"name": "Micah Peavy", "team": "New Orleans Pelicans"},
+  {"name": "Jordan Poole", "team": "New Orleans Pelicans"},
+  {"name": "Jaden Springer", "team": "New Orleans Pelicans"},
+  {"name": "Derik Queen", "team": "New Orleans Pelicans"},
+  {"name": "Ajay Mitchell", "team": "Oklahoma City Thunder"},
+  {"name": "Thomas Sorber", "team": "Oklahoma City Thunder"},
+  {"name": "Noah Penda", "team": "Orlando Magic"},
+  {"name": "Jase Richardson", "team": "Orlando Magic"},
+  {"name": "Orlando Robinson", "team": "Orlando Magic"},
+  {"name": "Jalen Suggs", "team": "Orlando Magic"},
+  {"name": "Pete Nance", "team": "Milwaukee Bucks"},
+  {"name": "Kevin Porter, Jr.", "team": "Milwaukee Bucks"},
+  {"name": "Bobby Portis", "team": "Milwaukee Bucks"},
+  {"name": "Taurean Prince", "team": "Milwaukee Bucks"},
+  {"name": "Ryan Rollins", "team": "Milwaukee Bucks"},
+  {"name": "Mark Sears", "team": "Milwaukee Bucks"},
+  {"name": "Jericho Sims", "team": "Milwaukee Bucks"},
+  {"name": "Khris Middleton", "team": "Washington Wizards"},
+  {"name": "Will Riley", "team": "Washington Wizards"},
+  {"name": "Alex Sarr", "team": "Washington Wizards"},
+  {"name": "Jordan McLaughlin", "team": "San Antonio Spurs"},
+  {"name": "Riley Minix", "team": "San Antonio Spurs"},
+  {"name": "Kelly Olynyk", "team": "San Antonio Spurs"},
+  {"name": "Jeremy Sochan", "team": "San Antonio Spurs"},
+  {"name": "Jonathan Mogbo", "team": "Toronto Raptors"},
+  {"name": "Jakob Poeltl", "team": "Toronto Raptors"},
+  {"name": "Collin Murray-Boyles", "team": "Toronto Raptors"},
+  {"name": "Immanuel Quickley", "team": "Toronto Raptors"},
+  {"name": "Jamal Shead", "team": "Toronto Raptors"},
+  {"name": "Svi Mykhailiuk", "team": "Utah Jazz"},
+  {"name": "Georges Niang", "team": "Utah Jazz"},
+  {"name": "Jusuf Nurkic", "team": "Utah Jazz"},
+  {"name": "Brice Sensabaugh", "team": "Utah Jazz"},
+  {"name": "Malik Monk", "team": "Sacramento Kings"},
+  {"name": "Keegan Murray", "team": "Sacramento Kings"},
+  {"name": "Daeqwon Plowden", "team": "Sacramento Kings"},
+  {"name": "Domantas Sabonis", "team": "Sacramento Kings"},
+  {"name": "Dario Saric", "team": "Sacramento Kings"},
+  {"name": "Dennis Schroder", "team": "Sacramento Kings"},
+  {"name": "Maxime Raynaud", "team": "Sacramento Kings"},
+  {"name": "Isaiah Stevens", "team": "Sacramento Kings"},
+  {"name": "Josh Okogie", "team": "Houston Rockets"},
+  {"name": "Alperen Sengun", "team": "Houston Rockets"},
+  {"name": "Jae'sean Tate", "team": "Houston Rockets"},
+  {"name": "Reed Sheppard", "team": "Houston Rockets"},
+  {"name": "Jabari Smith, Jr.", "team": "Houston Rockets"},
+  {"name": "Kris Murray", "team": "Portland Trail Blazers"},
+  {"name": "Duop Reath", "team": "Portland Trail Blazers"},
+  {"name": "Shaedon Sharpe", "team": "Portland Trail Blazers"},
+  {"name": "Rayan Rupert", "team": "Portland Trail Blazers"},
+  {"name": "Royce O'Neale", "team": "Phoenix Suns"},
+  {"name": "Nick Richards", "team": "Phoenix Suns"}
 ]
