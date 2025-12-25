@@ -180,6 +180,25 @@
                                 Click on any odds to add to CSV
                             </div>
                         </div>
+
+                        <!-- Bookmaker Filter -->
+                        <div id="bookmaker-filter-container" class="hidden glassmorphic rounded-xl p-4 mb-4">
+                            <div class="flex items-center justify-between mb-3">
+                                <h3 class="text-sm font-semibold text-gray-700">🔍 Filter by Bookmakers</h3>
+                                <div class="space-x-2">
+                                    <button id="selectAllBookmakers" class="text-xs px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
+                                        Select All
+                                    </button>
+                                    <button id="deselectAllBookmakers" class="text-xs px-3 py-1 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors">
+                                        Deselect All
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="bookmaker-checkboxes" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                                <!-- Bookmaker checkboxes will be populated here -->
+                            </div>
+                        </div>
+
                         <div id="odds-comparison-content"></div>
                     </div>
                 </div>
@@ -265,6 +284,10 @@
         const eventsDropdown = document.getElementById('eventsDropdown');
         const oddsComparisonContainer = document.getElementById('odds-comparison-container');
         const oddsComparisonContent = document.getElementById('odds-comparison-content');
+        const bookmakerFilterContainer = document.getElementById('bookmaker-filter-container');
+        const bookmakerCheckboxes = document.getElementById('bookmaker-checkboxes');
+        const selectAllBookmakers = document.getElementById('selectAllBookmakers');
+        const deselectAllBookmakers = document.getElementById('deselectAllBookmakers');
         const loader = document.getElementById('loader');
         const errorDiv = document.getElementById('error');
         const errorMessage = document.getElementById('errorMessage');
@@ -280,6 +303,7 @@
 
         // State variables
         let fetchedEvents = [];
+        let selectedBookmakers = new Set(); // Track selected bookmakers for filtering
         let currentFullGameData = null;
         let currentEventCommenceTime = null;
         let currentHomeTeam = null;
@@ -421,9 +445,11 @@
 
             oddsComparisonContent.innerHTML = '';
             oddsComparisonContainer.classList.add('hidden');
+            bookmakerFilterContainer.classList.add('hidden');
             currentFullGameData = null;
             selectedLines = [];
             expandedPlayers.clear();
+            selectedBookmakers.clear(); // Reset bookmaker filter
             updateSelectionPanel();
 
             if (!eventId) return;
@@ -462,12 +488,71 @@
                     sessionStorage.setItem(cacheKey, JSON.stringify(currentFullGameData));
                 }
 
+                populateBookmakerFilter();
                 renderOddsComparison();
 
             } catch (error) {
                 const errorHTML = `<p class="text-red-500 text-center">Could not fetch player odds: ${error.message}</p>`;
                 oddsComparisonContent.innerHTML = errorHTML;
             }
+        });
+
+        function populateBookmakerFilter() {
+            if (!currentFullGameData || !currentFullGameData.bookmakers) return;
+
+            // Get all unique bookmakers
+            const bookmakers = currentFullGameData.bookmakers.map(b => ({
+                key: b.key,
+                title: b.title
+            }));
+
+            // Initialize all as selected if none are selected yet
+            if (selectedBookmakers.size === 0) {
+                bookmakers.forEach(b => selectedBookmakers.add(b.key));
+            }
+
+            // Populate checkboxes
+            bookmakerCheckboxes.innerHTML = bookmakers.map(bookie => `
+                <label class="flex items-center space-x-2 p-2 bg-white bg-opacity-60 rounded-lg cursor-pointer hover:bg-opacity-80 transition-all">
+                    <input
+                        type="checkbox"
+                        class="bookmaker-checkbox w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                        value="${bookie.key}"
+                        ${selectedBookmakers.has(bookie.key) ? 'checked' : ''}
+                        onchange="toggleBookmakerFilter('${bookie.key}')"
+                    >
+                    <span class="text-sm text-gray-700">${bookie.title}</span>
+                </label>
+            `).join('');
+
+            bookmakerFilterContainer.classList.remove('hidden');
+        }
+
+        function toggleBookmakerFilter(bookmakerKey) {
+            if (selectedBookmakers.has(bookmakerKey)) {
+                selectedBookmakers.delete(bookmakerKey);
+            } else {
+                selectedBookmakers.add(bookmakerKey);
+            }
+            renderOddsComparison();
+        }
+
+        selectAllBookmakers.addEventListener('click', () => {
+            const checkboxes = document.querySelectorAll('.bookmaker-checkbox');
+            checkboxes.forEach(cb => {
+                cb.checked = true;
+                selectedBookmakers.add(cb.value);
+            });
+            renderOddsComparison();
+        });
+
+        deselectAllBookmakers.addEventListener('click', () => {
+            const checkboxes = document.querySelectorAll('.bookmaker-checkbox');
+            checkboxes.forEach(cb => {
+                cb.checked = false;
+                selectedBookmakers.delete(cb.value);
+            });
+            renderOddsComparison();
         });
 
         function renderOddsComparison() {
@@ -478,7 +563,16 @@
                 return;
             }
 
-            const bookmakers = currentFullGameData.bookmakers;
+            // Filter bookmakers based on selected filters
+            const bookmakers = currentFullGameData.bookmakers.filter(b =>
+                selectedBookmakers.size === 0 || selectedBookmakers.has(b.key)
+            );
+
+            // Show message if no bookmakers selected
+            if (bookmakers.length === 0) {
+                oddsComparisonContent.innerHTML = '<p class="text-center text-gray-500">No bookmakers selected. Please select at least one bookmaker from the filter above.</p>';
+                return;
+            }
 
             // Organize data by market -> player -> bookmaker -> outcomes
             const marketData = {};
@@ -632,7 +726,10 @@
         }
 
         function findBestOdds(marketKey, playerName, line, outcome) {
-            const bookmakers = currentFullGameData.bookmakers;
+            // Filter bookmakers based on selected filters
+            const bookmakers = currentFullGameData.bookmakers.filter(b =>
+                selectedBookmakers.size === 0 || selectedBookmakers.has(b.key)
+            );
             let bestOdds = 0;
 
             bookmakers.forEach(bookie => {
