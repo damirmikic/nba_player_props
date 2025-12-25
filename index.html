@@ -887,7 +887,10 @@
         }
 
         function addAllPlayerLines(playerName, marketKey) {
-            const bookmakers = currentFullGameData.bookmakers;
+            // Filter bookmakers based on selected filters
+            const bookmakers = currentFullGameData.bookmakers.filter(b =>
+                selectedBookmakers.size === 0 || selectedBookmakers.has(b.key)
+            );
             const marketName = marketsMap[marketKey] || marketKey;
             const team = findPlayerTeam(playerName);
             let addedCount = 0;
