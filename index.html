@@ -124,6 +124,15 @@
             }
         }
 
+        .selection-panel.minimized {
+            max-height: 60px;
+            overflow: hidden;
+        }
+
+        .selection-panel.minimized #selected-lines-list {
+            display: none;
+        }
+
         .odds-table {
             font-size: 0.875rem;
         }
@@ -227,7 +236,10 @@
                 <h3 class="text-lg font-bold text-gray-900">
                     📋 Selected Lines (<span id="selection-count">0</span>)
                 </h3>
-                <div class="space-x-2">
+                <div class="flex items-center space-x-2">
+                    <button id="minimizeSelectionPanelBtn" class="text-sm px-2 py-1 bg-gray-400 text-white rounded-lg hover:bg-gray-500 transition-colors" title="Minimize">
+                        ▼
+                    </button>
                     <button id="clearSelectionsBtn" class="text-sm px-3 py-1 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors">
                         Clear All
                     </button>
@@ -294,6 +306,7 @@
         const selectionPanel = document.getElementById('selection-panel');
         const selectedLinesList = document.getElementById('selected-lines-list');
         const selectionCount = document.getElementById('selection-count');
+        const minimizeSelectionPanelBtn = document.getElementById('minimizeSelectionPanelBtn');
         const clearSelectionsBtn = document.getElementById('clearSelectionsBtn');
         const exportSelectionsBtn = document.getElementById('exportSelectionsBtn');
         const csvTeamModal = document.getElementById('csvTeamModal');
@@ -311,6 +324,7 @@
         let nbaPlayersData = [];
         let selectedLines = []; // Array of {id, player, market, bookmaker, line, outcome, price, team}
         let expandedPlayers = new Set(); // Track which players are expanded
+        let isSelectionPanelMinimized = false; // Track if selection panel is minimized
 
         function displayUsageInfo(usageInfo) {
             const usageContainer = document.getElementById('usage-info-container');
@@ -1031,6 +1045,20 @@
             updateSelectionPanel();
             renderOddsComparison();
         }
+
+        minimizeSelectionPanelBtn.addEventListener('click', () => {
+            isSelectionPanelMinimized = !isSelectionPanelMinimized;
+
+            if (isSelectionPanelMinimized) {
+                selectionPanel.classList.add('minimized');
+                minimizeSelectionPanelBtn.textContent = '▲';
+                minimizeSelectionPanelBtn.title = 'Maximize';
+            } else {
+                selectionPanel.classList.remove('minimized');
+                minimizeSelectionPanelBtn.textContent = '▼';
+                minimizeSelectionPanelBtn.title = 'Minimize';
+            }
+        });
 
         clearSelectionsBtn.addEventListener('click', () => {
             if (confirm('Clear all selected lines?')) {
