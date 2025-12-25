@@ -666,12 +666,26 @@
             const existingIndex = selectedLines.findIndex(l => l.id === lineId);
 
             if (existingIndex > -1) {
-                // Deselecting - just remove it
+                // Deselecting - remove this line and its pair if it's Over/Under
                 selectedLines.splice(existingIndex, 1);
-            } else {
-                // Selecting - validate Over/Under pairing
+
+                // If this was Over/Under, also remove the matching opposite side
                 if (outcome === 'Over' || outcome === 'Under') {
-                    // Check if there's already an Over/Under selected for this player + market
+                    const oppositeOutcome = outcome === 'Over' ? 'Under' : 'Over';
+                    const oppositeIndex = selectedLines.findIndex(l =>
+                        l.player === player &&
+                        l.market === market &&
+                        l.bookmaker === bookmaker &&
+                        l.line === line &&
+                        l.outcome === oppositeOutcome
+                    );
+                    if (oppositeIndex > -1) {
+                        selectedLines.splice(oppositeIndex, 1);
+                    }
+                }
+            } else {
+                // Selecting - check for conflicting Over/Under from different bookmaker or line
+                if (outcome === 'Over' || outcome === 'Under') {
                     const existingOverUnder = selectedLines.find(l =>
                         l.player === player &&
                         l.market === market &&
@@ -679,29 +693,100 @@
                     );
 
                     if (existingOverUnder) {
-                        // Check if it's from the same bookmaker and same line
+                        // Check if it's from a different bookmaker or line
                         if (existingOverUnder.bookmaker !== bookmaker || existingOverUnder.line !== line) {
-                            alert(`You already selected ${existingOverUnder.outcome} ${existingOverUnder.line} from ${existingOverUnder.bookmaker} for ${player} - ${market}.\n\nYou can only select Over/Under from the same bookmaker with the same line.\n\nPlease deselect the existing line first, or choose the matching ${outcome === 'Over' ? 'Under' : 'Over'} ${existingOverUnder.line} from ${existingOverUnder.bookmaker}.`);
-                            return; // Block the selection
+                            alert(`You already selected ${existingOverUnder.outcome} ${existingOverUnder.line} from ${existingOverUnder.bookmaker} for ${player} - ${market}.\n\nYou can only select Over/Under from the same bookmaker with the same line.\n\nPlease deselect the existing line first.`);
+                            return;
                         }
                     }
-                }
 
-                // Validation passed or not an Over/Under market - add the selection
-                selectedLines.push({
-                    id: lineId,
-                    player,
-                    market,
-                    bookmaker,
-                    line,
-                    outcome,
-                    price,
-                    team
-                });
+                    // Add this selection
+                    selectedLines.push({
+                        id: lineId,
+                        player,
+                        market,
+                        bookmaker,
+                        line,
+                        outcome,
+                        price,
+                        team
+                    });
+
+                    // Automatically select the matching opposite side (Over/Under pair)
+                    const oppositeOutcome = outcome === 'Over' ? 'Under' : 'Over';
+                    const oppositeLineId = `${player}|${getMarketKey(market)}|${getBookmakerKey(bookmaker)}|${line}|${oppositeOutcome}`;
+
+                    // Check if opposite isn't already selected
+                    if (!selectedLines.some(l => l.id === oppositeLineId)) {
+                        // Find the opposite outcome data from the current game data
+                        const oppositeData = findOppositeOutcome(player, market, bookmaker, line, oppositeOutcome);
+                        if (oppositeData) {
+                            selectedLines.push({
+                                id: oppositeLineId,
+                                player,
+                                market,
+                                bookmaker,
+                                line,
+                                outcome: oppositeOutcome,
+                                price: oppositeData.price,
+                                team
+                            });
+                        }
+                    }
+                } else {
+                    // Not Over/Under, just add normally
+                    selectedLines.push({
+                        id: lineId,
+                        player,
+                        market,
+                        bookmaker,
+                        line,
+                        outcome,
+                        price,
+                        team
+                    });
+                }
             }
 
             updateSelectionPanel();
             renderOddsComparison();
+        }
+
+        function getMarketKey(marketName) {
+            // Convert market display name back to key
+            for (const [key, value] of Object.entries(marketsMap)) {
+                if (value === marketName) return key;
+            }
+            return marketName;
+        }
+
+        function getBookmakerKey(bookmakerTitle) {
+            // Find bookmaker key from title
+            const bookie = currentFullGameData.bookmakers.find(b => b.title === bookmakerTitle);
+            return bookie ? bookie.key : bookmakerTitle;
+        }
+
+        function findOppositeOutcome(player, market, bookmaker, line, oppositeOutcome) {
+            const marketKey = getMarketKey(market);
+            const bookmakers = currentFullGameData.bookmakers;
+
+            for (const bookie of bookmakers) {
+                if (bookie.title !== bookmaker) continue;
+
+                const marketData = bookie.markets.find(m => m.key === marketKey);
+                if (marketData) {
+                    for (const outcome of marketData.outcomes) {
+                        if (outcome.description === player &&
+                            outcome.name === oppositeOutcome &&
+                            outcome.point == line) {
+                            return {
+                                price: outcome.price
+                            };
+                        }
+                    }
+                }
+            }
+            return null;
         }
 
         function addAllPlayerLines(playerName, marketKey) {
@@ -717,50 +802,101 @@
                 (l.outcome === 'Over' || l.outcome === 'Under')
             );
 
+            if (existingOverUnder) {
+                alert(`You already have ${existingOverUnder.outcome} ${existingOverUnder.line} from ${existingOverUnder.bookmaker} selected for ${playerName} - ${marketName}.\n\nClear your existing selection first to add all lines from different bookmakers.`);
+                return;
+            }
+
+            // Track processed Over/Under pairs to avoid duplicates
+            const processedPairs = new Set();
+
             bookmakers.forEach(bookie => {
                 const market = bookie.markets.find(m => m.key === marketKey);
                 if (market) {
+                    // Group outcomes by line for Over/Under pairing
+                    const outcomesByLine = {};
+
                     market.outcomes.forEach(outcome => {
                         if (outcome.description === playerName) {
                             const line = outcome.point || 'N/A';
-                            const lineId = `${playerName}|${marketKey}|${bookie.key}|${line}|${outcome.name}`;
-
-                            // Skip if already selected
-                            if (selectedLines.some(l => l.id === lineId)) {
-                                return;
+                            if (!outcomesByLine[line]) {
+                                outcomesByLine[line] = {};
                             }
-
-                            // Apply Over/Under pairing validation
-                            if (outcome.name === 'Over' || outcome.name === 'Under') {
-                                if (existingOverUnder) {
-                                    // Only add if it matches the existing bookmaker and line
-                                    if (existingOverUnder.bookmaker !== bookie.title || existingOverUnder.line !== line) {
-                                        return; // Skip this line - doesn't match existing selection
-                                    }
-                                }
-                            }
-
-                            selectedLines.push({
-                                id: lineId,
-                                player: playerName,
-                                market: marketName,
-                                bookmaker: bookie.title,
-                                line,
-                                outcome: outcome.name,
-                                price: outcome.price,
-                                team
-                            });
-                            addedCount++;
+                            outcomesByLine[line][outcome.name] = outcome;
                         }
                     });
+
+                    // Add complete pairs or individual outcomes
+                    for (const line in outcomesByLine) {
+                        const outcomes = outcomesByLine[line];
+                        const pairKey = `${bookie.key}|${line}`;
+
+                        // Skip if already processed
+                        if (processedPairs.has(pairKey)) continue;
+
+                        // Check if Over/Under market
+                        if (outcomes['Over'] || outcomes['Under']) {
+                            // Add both Over and Under if available
+                            if (outcomes['Over']) {
+                                const lineId = `${playerName}|${marketKey}|${bookie.key}|${line}|Over`;
+                                if (!selectedLines.some(l => l.id === lineId)) {
+                                    selectedLines.push({
+                                        id: lineId,
+                                        player: playerName,
+                                        market: marketName,
+                                        bookmaker: bookie.title,
+                                        line,
+                                        outcome: 'Over',
+                                        price: outcomes['Over'].price,
+                                        team
+                                    });
+                                    addedCount++;
+                                }
+                            }
+                            if (outcomes['Under']) {
+                                const lineId = `${playerName}|${marketKey}|${bookie.key}|${line}|Under`;
+                                if (!selectedLines.some(l => l.id === lineId)) {
+                                    selectedLines.push({
+                                        id: lineId,
+                                        player: playerName,
+                                        market: marketName,
+                                        bookmaker: bookie.title,
+                                        line,
+                                        outcome: 'Under',
+                                        price: outcomes['Under'].price,
+                                        team
+                                    });
+                                    addedCount++;
+                                }
+                            }
+                            processedPairs.add(pairKey);
+                        } else {
+                            // Yes/No market - add all outcomes
+                            for (const outcomeName in outcomes) {
+                                const outcome = outcomes[outcomeName];
+                                const lineId = `${playerName}|${marketKey}|${bookie.key}|${line}|${outcomeName}`;
+                                if (!selectedLines.some(l => l.id === lineId)) {
+                                    selectedLines.push({
+                                        id: lineId,
+                                        player: playerName,
+                                        market: marketName,
+                                        bookmaker: bookie.title,
+                                        line,
+                                        outcome: outcomeName,
+                                        price: outcome.price,
+                                        team
+                                    });
+                                    addedCount++;
+                                }
+                            }
+                        }
+                    }
                 }
             });
 
             if (addedCount > 0) {
                 updateSelectionPanel();
                 renderOddsComparison();
-            } else if (existingOverUnder) {
-                alert(`You already have ${existingOverUnder.outcome} ${existingOverUnder.line} from ${existingOverUnder.bookmaker} selected for ${playerName} - ${marketName}.\n\nClear your existing selection first to add all lines from different bookmakers.`);
             }
         }
 
@@ -850,28 +986,65 @@
             csvRows.push(['MATCH_NAME:NBA Player Props']);
             csvRows.push([`LEAGUE_NAME:${leagueTeam} NBA Specijal`]);
 
-            selectedLines.forEach(line => {
+            // Group lines by player + market + bookmaker + line to combine Over/Under pairs
+            const groupedLines = {};
+            const processedIndices = new Set();
+
+            selectedLines.forEach((line, index) => {
+                if (processedIndices.has(index)) return;
+
+                const key = `${line.player}|${line.market}|${line.bookmaker}|${line.line}`;
+
+                if (!groupedLines[key]) {
+                    groupedLines[key] = {
+                        player: line.player,
+                        market: line.market,
+                        bookmaker: line.bookmaker,
+                        line: line.line,
+                        team: line.team,
+                        over: null,
+                        under: null,
+                        yes: null,
+                        no: null
+                    };
+                }
+
+                // Add this outcome to the group
+                if (line.outcome === 'Over') {
+                    groupedLines[key].over = line.price;
+                } else if (line.outcome === 'Under') {
+                    groupedLines[key].under = line.price;
+                } else if (line.outcome === 'Yes') {
+                    groupedLines[key].yes = line.price;
+                } else if (line.outcome === 'No') {
+                    groupedLines[key].no = line.price;
+                }
+
+                processedIndices.add(index);
+            });
+
+            // Create CSV rows from grouped data
+            for (const key in groupedLines) {
+                const group = groupedLines[key];
                 const row = Array(13).fill('');
                 row[0] = dateStr;
                 row[1] = timeStr;
-                row[3] = line.player;
-                row[4] = `Total ${line.market}`;
+                row[3] = group.player;
+                row[4] = `Total ${group.market}`;
 
-                if (line.outcome === 'Over' || line.outcome === 'Under') {
-                    row[8] = line.line;
-                    if (line.outcome === 'Over') {
-                        row[10] = line.price;
-                    } else {
-                        row[9] = line.price;
-                    }
-                } else if (line.outcome === 'Yes') {
-                    row[11] = line.price;
-                } else if (line.outcome === 'No') {
-                    row[12] = line.price;
+                if (group.over !== null || group.under !== null) {
+                    // Over/Under market
+                    row[8] = group.line;
+                    row[9] = group.under || '';
+                    row[10] = group.over || '';
+                } else if (group.yes !== null) {
+                    // Yes/No market
+                    row[11] = group.yes || '';
+                    row[12] = group.no || '';
                 }
 
                 csvRows.push(row);
-            });
+            }
 
             let csvContent = "data:text/csv;charset=utf-8," + csvRows.map(e => e.join(",")).join("\r\n");
             const encodedUri = encodeURI(csvContent);
