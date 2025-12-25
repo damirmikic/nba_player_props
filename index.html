@@ -666,8 +666,28 @@
             const existingIndex = selectedLines.findIndex(l => l.id === lineId);
 
             if (existingIndex > -1) {
+                // Deselecting - just remove it
                 selectedLines.splice(existingIndex, 1);
             } else {
+                // Selecting - validate Over/Under pairing
+                if (outcome === 'Over' || outcome === 'Under') {
+                    // Check if there's already an Over/Under selected for this player + market
+                    const existingOverUnder = selectedLines.find(l =>
+                        l.player === player &&
+                        l.market === market &&
+                        (l.outcome === 'Over' || l.outcome === 'Under')
+                    );
+
+                    if (existingOverUnder) {
+                        // Check if it's from the same bookmaker and same line
+                        if (existingOverUnder.bookmaker !== bookmaker || existingOverUnder.line !== line) {
+                            alert(`You already selected ${existingOverUnder.outcome} ${existingOverUnder.line} from ${existingOverUnder.bookmaker} for ${player} - ${market}.\n\nYou can only select Over/Under from the same bookmaker with the same line.\n\nPlease deselect the existing line first, or choose the matching ${outcome === 'Over' ? 'Under' : 'Over'} ${existingOverUnder.line} from ${existingOverUnder.bookmaker}.`);
+                            return; // Block the selection
+                        }
+                    }
+                }
+
+                // Validation passed or not an Over/Under market - add the selection
                 selectedLines.push({
                     id: lineId,
                     player,
@@ -690,6 +710,13 @@
             const team = findPlayerTeam(playerName);
             let addedCount = 0;
 
+            // Check if there's already an Over/Under selected for this player + market
+            const existingOverUnder = selectedLines.find(l =>
+                l.player === playerName &&
+                l.market === marketName &&
+                (l.outcome === 'Over' || l.outcome === 'Under')
+            );
+
             bookmakers.forEach(bookie => {
                 const market = bookie.markets.find(m => m.key === marketKey);
                 if (market) {
@@ -698,19 +725,32 @@
                             const line = outcome.point || 'N/A';
                             const lineId = `${playerName}|${marketKey}|${bookie.key}|${line}|${outcome.name}`;
 
-                            if (!selectedLines.some(l => l.id === lineId)) {
-                                selectedLines.push({
-                                    id: lineId,
-                                    player: playerName,
-                                    market: marketName,
-                                    bookmaker: bookie.title,
-                                    line,
-                                    outcome: outcome.name,
-                                    price: outcome.price,
-                                    team
-                                });
-                                addedCount++;
+                            // Skip if already selected
+                            if (selectedLines.some(l => l.id === lineId)) {
+                                return;
                             }
+
+                            // Apply Over/Under pairing validation
+                            if (outcome.name === 'Over' || outcome.name === 'Under') {
+                                if (existingOverUnder) {
+                                    // Only add if it matches the existing bookmaker and line
+                                    if (existingOverUnder.bookmaker !== bookie.title || existingOverUnder.line !== line) {
+                                        return; // Skip this line - doesn't match existing selection
+                                    }
+                                }
+                            }
+
+                            selectedLines.push({
+                                id: lineId,
+                                player: playerName,
+                                market: marketName,
+                                bookmaker: bookie.title,
+                                line,
+                                outcome: outcome.name,
+                                price: outcome.price,
+                                team
+                            });
+                            addedCount++;
                         }
                     });
                 }
@@ -719,6 +759,8 @@
             if (addedCount > 0) {
                 updateSelectionPanel();
                 renderOddsComparison();
+            } else if (existingOverUnder) {
+                alert(`You already have ${existingOverUnder.outcome} ${existingOverUnder.line} from ${existingOverUnder.bookmaker} selected for ${playerName} - ${marketName}.\n\nClear your existing selection first to add all lines from different bookmakers.`);
             }
         }
 
