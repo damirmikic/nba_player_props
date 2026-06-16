@@ -1,12 +1,42 @@
+import { useEffect, useState } from 'react'
 import { League, LEAGUE_DATA_SOURCES } from '@/types/index'
 import { useLeagueStore, getLeagueName } from '@store/leagueStore'
+import { SuperbetFetcher } from '@services/superbetFetcher'
 
 interface LeaguePickerProps {
   onLeagueChange?: (league: League) => void
 }
 
 export function LeaguePicker({ onLeagueChange }: LeaguePickerProps) {
-  const { selectedLeague, availableLeagues, setLeague } = useLeagueStore()
+  const {
+    selectedLeague,
+    availableLeagues,
+    leagueLabels,
+    superbetLeagues,
+    setLeague,
+    setSuperbetLeagues,
+  } = useLeagueStore()
+  const [isLoadingLeagues, setIsLoadingLeagues] = useState(false)
+
+  useEffect(() => {
+    let isMounted = true
+
+    const loadSuperbetLeagues = async () => {
+      setIsLoadingLeagues(true)
+      try {
+        const leagues = await SuperbetFetcher.fetchBasketballLeagues()
+        if (isMounted) setSuperbetLeagues(leagues)
+      } finally {
+        if (isMounted) setIsLoadingLeagues(false)
+      }
+    }
+
+    loadSuperbetLeagues()
+
+    return () => {
+      isMounted = false
+    }
+  }, [setSuperbetLeagues])
 
   const handleLeagueChange = (league: League) => {
     setLeague(league)
@@ -14,6 +44,12 @@ export function LeaguePicker({ onLeagueChange }: LeaguePickerProps) {
   }
 
   const currentSource = LEAGUE_DATA_SOURCES[selectedLeague]
+  const selectedSuperbetLeague = superbetLeagues.find((league) => league.id === selectedLeague)
+  const currentSourceName = currentSource?.primary || (selectedSuperbetLeague ? 'Superbet' : 'Unknown')
+  const currentBookCount = currentSource?.books.length || (selectedSuperbetLeague ? 1 : 0)
+  const displayLeagueName = (league: League) => leagueLabels[league] || getLeagueName(league)
+  const leagueEventCount = (league: League) =>
+    superbetLeagues.find((superbetLeague) => superbetLeague.id === league)?.eventCount
 
   return (
     <div className="bg-white border-b border-gray-200 sticky top-0 z-40">
@@ -29,20 +65,24 @@ export function LeaguePicker({ onLeagueChange }: LeaguePickerProps) {
             >
               {availableLeagues.map((league) => (
                 <option key={league} value={league}>
-                  {getLeagueName(league)}
+                  {displayLeagueName(league)}
+                  {leagueEventCount(league) ? ` (${leagueEventCount(league)} games)` : ''}
                 </option>
               ))}
             </select>
+            {isLoadingLeagues && (
+              <span className="text-xs text-gray-500">Loading Superbet leagues...</span>
+            )}
           </div>
 
           {/* Data source indicator */}
           <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-md">
             <span className="text-xs font-medium text-gray-600">Source:</span>
             <span className="text-sm font-semibold text-gray-900">
-              {currentSource?.primary}
+              {currentSourceName}
             </span>
             <span className="text-xs text-gray-500">
-              ({currentSource?.books.length || 0} books)
+              ({currentBookCount} books)
             </span>
           </div>
 
@@ -60,7 +100,7 @@ export function LeaguePicker({ onLeagueChange }: LeaguePickerProps) {
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
-                  {getLeagueName(league).split(' ')[0]}
+                  {displayLeagueName(league).split(' ')[0]}
                 </button>
               ))}
             </div>

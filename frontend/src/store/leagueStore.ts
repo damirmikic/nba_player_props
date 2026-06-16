@@ -1,11 +1,15 @@
 import { create } from 'zustand'
 import { League, LEAGUE_NAMES } from '@/types/index'
+import type { SuperbetBasketballLeague } from '@services/superbetFetcher'
 
 interface LeagueState {
   selectedLeague: League
   availableLeagues: League[]
+  leagueLabels: Record<number, string>
+  superbetLeagues: SuperbetBasketballLeague[]
 
   setLeague: (league: League) => void
+  setSuperbetLeagues: (leagues: SuperbetBasketballLeague[]) => void
 }
 
 // Determine available leagues based on current season
@@ -50,10 +54,28 @@ const getAvailableLeagues = (): League[] => {
 export const useLeagueStore = create<LeagueState>((set) => ({
   selectedLeague: getAvailableLeagues()[0], // Default to first available
   availableLeagues: getAvailableLeagues(),
+  leagueLabels: {},
+  superbetLeagues: [],
 
   setLeague: (league: League) => {
     // Reset filters when changing league
     set({ selectedLeague: league })
+  },
+
+  setSuperbetLeagues: (leagues: SuperbetBasketballLeague[]) => {
+    if (leagues.length === 0) return
+
+    const labels = Object.fromEntries(leagues.map((league) => [league.id, league.name]))
+    const merged = Array.from(new Set([...getAvailableLeagues(), ...leagues.map((league) => league.id)]))
+
+    set((state) => ({
+      availableLeagues: merged,
+      leagueLabels: {
+        ...state.leagueLabels,
+        ...labels,
+      },
+      superbetLeagues: leagues,
+    }))
   },
 }))
 

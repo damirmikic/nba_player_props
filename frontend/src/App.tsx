@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { useOddsStore } from '@store/oddsStore'
 import { useLeagueStore } from '@store/leagueStore'
 import { useFilterStore } from '@store/filterStore'
-import { LEAGUE_DATA_SOURCES } from '@/types/index'
+import { LEAGUE_DATA_SOURCES, SPORTSBOOKS } from '@/types/index'
 
 import { OddsFetcher } from '@services/oddsFetcher'
 import { SuperbetFetcher } from '@services/superbetFetcher'
@@ -35,6 +35,11 @@ export function App() {
     resetFilters,
   } = useFilterStore()
 
+  useEffect(() => {
+    const books = LEAGUE_DATA_SOURCES[selectedLeague]?.books || [SPORTSBOOKS.SUPERBET]
+    setSelectedSportsbooks(books)
+  }, [selectedLeague, setSelectedSportsbooks])
+
   // Fetch odds when league changes
   useEffect(() => {
     const fetchOdds = async () => {
@@ -43,12 +48,14 @@ export function App() {
         let normalized
         const source = LEAGUE_DATA_SOURCES[selectedLeague]
 
-        if (!source) {
+        const isDynamicSuperbetLeague = !source && selectedLeague >= 400
+
+        if (!source && !isDynamicSuperbetLeague) {
           throw new Error(`No data source configured for league: ${selectedLeague}`)
         }
 
         // Use appropriate fetcher based on data source
-        if (source.primary === 'Unabated') {
+        if (source?.primary === 'Unabated') {
           normalized = await OddsFetcher.fetchAndNormalize(selectedLeague)
         } else {
           // Superbet for European leagues - with mock data for now

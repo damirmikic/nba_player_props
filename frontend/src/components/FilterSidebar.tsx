@@ -126,7 +126,7 @@ export function FilterSidebar({
   const selectedLeague = useLeagueStore((s) => s.selectedLeague)
 
   // Get books available for current league
-  const leagueBooks = LEAGUE_DATA_SOURCES[selectedLeague]?.books || []
+  const leagueBooks = LEAGUE_DATA_SOURCES[selectedLeague]?.books || [SPORTSBOOKS.SUPERBET]
   const BOOKS = leagueBooks.map((id) => ({
     id,
     name: ALL_BOOKS[id] || `Book ${id}`,

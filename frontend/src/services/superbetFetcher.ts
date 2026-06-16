@@ -2,7 +2,8 @@
  * Superbet API client for European basketball leagues
  * Configuration based on actual Superbet web app
  * Endpoints:
- * - Prematch: https://production-superbet-offer-rs.freetls.fastly.net/sb-rs/api/v2/subscription/{locale}/prematch
+ * - Prematch: https://production-superbet-offer-rs.freetls.fastly.net/sb-rs/api/v3/subscription/{locale}/prematch
+ * - Structure: https://production-superbet-offer-rs.freetls.fastly.net/sb-rs/api/subscription/v2/{locale}/structure
  * - Stats: https://scorealarm-stats.freetls.fastly.net
  */
 
@@ -18,7 +19,7 @@ import { MARKET_LABELS, LEAGUE_DATA_SOURCES } from '@/types/index'
 
 // Superbet API Configuration
 const SUPERBET_CONFIG = {
-  baseUrl: 'https://production-superbet-offer-rs.freetls.fastly.net/sb-rs/api/v2',
+  offerBaseUrl: 'https://production-superbet-offer-rs.freetls.fastly.net/sb-rs/api',
   statsUrl: 'https://scorealarm-stats.freetls.fastly.net',
   locale: 'sr-Latn-RS',
   soccerSportId: 5,
@@ -64,6 +65,39 @@ interface SuperbetPrematchResponse {
   timestamp: string
 }
 
+interface SuperbetRawPrematchEvent {
+  event_id: number
+  fixture?: {
+    category_id?: number
+    event_name?: string
+    sport_id?: number
+    tournament_id?: number
+    utc_date?: string
+  }
+  markets?: Array<{
+    id?: number
+    name?: string
+    odds?: Array<{
+      uuid?: string
+      price?: number
+      status?: number
+      display?: boolean
+      metadata?: {
+        name?: string
+        info?: string
+      }
+    }>
+  }>
+}
+
+export interface SuperbetBasketballLeague {
+  id: League
+  name: string
+  eventCount: number
+  categoryIds: number[]
+  nextEventTime: string | null
+}
+
 interface SuperbetStructure {
   sports: Array<{
     id: number
@@ -82,6 +116,191 @@ interface SuperbetStructure {
 export class SuperbetFetcher {
   // Use mock in restricted environments, switch to false for production with network access
   static MOCK_ENABLED = true
+
+  private static readonly KNOWN_TOURNAMENT_NAMES: Record<number, string> = {
+    426: 'Turkey Super League',
+    2174: 'WNBA',
+    2187: 'ACB (Spain)',
+    2200: 'Poland PLK',
+    2205: 'Italy Serie A',
+    2209: 'Israel Super League',
+    2419: 'Germany BBL',
+    2423: 'France LNB Pro A',
+    2448: 'Argentina Liga Nacional',
+    29507: 'Uruguay Liga',
+    30870: 'Puerto Rico BSN',
+    38095: 'New Zealand NBL',
+    47113: 'Israel National League',
+    52234: 'Venezuela Superliga',
+    60568: 'Dominican Republic LNB',
+  }
+
+  private static topOfHour(date: Date): Date {
+    const rounded = new Date(date)
+    rounded.setUTCMinutes(0, 0, 0)
+    return rounded
+  }
+
+  private static buildPrematchUrl(startDate: Date, endDate: Date): string {
+    const params = new URLSearchParams({
+      sports: String(SPORTS_MAPPING.basketball),
+      startDate: this.topOfHour(startDate).toISOString(),
+      endDate: this.topOfHour(endDate).toISOString(),
+    })
+
+    return `${SUPERBET_CONFIG.offerBaseUrl}/v3/subscription/${SUPERBET_CONFIG.locale}/prematch?${params.toString()}`
+  }
+
+  private static parseSseData<T>(payload: string): T[] {
+    const items: T[] = []
+
+    for (const line of payload.split(/\r?\n/)) {
+      const trimmed = line.trim()
+      if (!trimmed.startsWith('data:')) continue
+
+      const json = trimmed.slice(5).trim()
+      if (!json) continue
+
+      try {
+        const parsed = JSON.parse(json)
+        if (Array.isArray(parsed)) {
+          items.push(...parsed)
+        } else {
+          items.push(parsed)
+        }
+      } catch {
+        // Ignore partial stream chunks emitted close to request timeout.
+      }
+    }
+
+    return items
+  }
+
+  private static async fetchPrematchSnapshot(url: string, maxWaitMs = 5000): Promise<string> {
+    const controller = new AbortController()
+    const timer = window.setTimeout(() => controller.abort(), maxWaitMs)
+
+    try {
+      const response = await fetch(url, {
+        signal: controller.signal,
+        headers: {
+          Accept: 'text/event-stream, application/json, text/plain, */*',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`Superbet responded with ${response.status}`)
+      }
+
+      if (!response.body) {
+        return await response.text()
+      }
+
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let text = ''
+
+      while (true) {
+        const { value, done } = await reader.read()
+        if (done) break
+
+        text += decoder.decode(value, { stream: true })
+        if (text.includes('\n\n')) break
+      }
+
+      controller.abort()
+      return text
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        return ''
+      }
+
+      throw error
+    } finally {
+      window.clearTimeout(timer)
+    }
+  }
+
+  private static deriveLeagues(events: SuperbetRawPrematchEvent[]): SuperbetBasketballLeague[] {
+    const byTournament = new Map<number, {
+      name: string
+      eventCount: number
+      categoryIds: Set<number>
+      nextEventTime: string | null
+    }>()
+
+    for (const event of events) {
+      const fixture = event.fixture
+      if (!fixture || fixture.sport_id !== SPORTS_MAPPING.basketball || !fixture.tournament_id) {
+        continue
+      }
+
+      const tournamentId = fixture.tournament_id
+      const existing = byTournament.get(tournamentId)
+      const eventTime = fixture.utc_date || null
+
+      if (existing) {
+        existing.eventCount += 1
+        if (fixture.category_id) existing.categoryIds.add(fixture.category_id)
+        if (eventTime && (!existing.nextEventTime || eventTime < existing.nextEventTime)) {
+          existing.nextEventTime = eventTime
+        }
+      } else {
+        byTournament.set(tournamentId, {
+          name: this.KNOWN_TOURNAMENT_NAMES[tournamentId] || `Tournament ${tournamentId}`,
+          eventCount: 1,
+          categoryIds: new Set(fixture.category_id ? [fixture.category_id] : []),
+          nextEventTime: eventTime,
+        })
+      }
+    }
+
+    return Array.from(byTournament.entries())
+      .map(([id, league]) => ({
+        id: id as League,
+        name: league.name,
+        eventCount: league.eventCount,
+        categoryIds: Array.from(league.categoryIds),
+        nextEventTime: league.nextEventTime,
+      }))
+      .sort((a, b) => {
+        if (b.eventCount !== a.eventCount) return b.eventCount - a.eventCount
+        return a.name.localeCompare(b.name)
+      })
+  }
+
+  static async fetchBasketballLeagues(
+    startDate: Date = new Date(),
+    endDate: Date = new Date(Date.now() + SUPERBET_CONFIG.upcomingDays * 24 * 60 * 60 * 1000)
+  ): Promise<SuperbetBasketballLeague[]> {
+    try {
+      const proxyResponse = await axios.get<{ leagues: SuperbetBasketballLeague[] }>(
+        '/.netlify/functions/superbet-basketball-leagues',
+        { timeout: 12000 }
+      )
+
+      if (Array.isArray(proxyResponse.data?.leagues) && proxyResponse.data.leagues.length > 0) {
+        return proxyResponse.data.leagues
+      }
+    } catch {
+      // Local Vite dev usually does not expose Netlify functions.
+    }
+
+    try {
+      const streamText = await this.fetchPrematchSnapshot(this.buildPrematchUrl(startDate, endDate))
+      return this.deriveLeagues(this.parseSseData<SuperbetRawPrematchEvent>(streamText))
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      console.warn(`Superbet basketball leagues unavailable, using fallback list: ${message}`)
+
+      return [
+        { id: 2174 as League, name: 'WNBA', eventCount: 0, categoryIds: [61], nextEventTime: null },
+        { id: 2187 as League, name: 'ACB (Spain)', eventCount: 0, categoryIds: [108], nextEventTime: null },
+        { id: 2205 as League, name: 'Italy Serie A', eventCount: 0, categoryIds: [56], nextEventTime: null },
+        { id: 426 as League, name: 'Turkey Super League', eventCount: 0, categoryIds: [129], nextEventTime: null },
+      ]
+    }
+  }
 
   /**
    * Fetch prematch odds for a specific sport/league
@@ -105,11 +324,10 @@ export class SuperbetFetcher {
         endDate: endDate.toISOString(),
       }
 
-      const endpoint = `${SUPERBET_CONFIG.baseUrl}/subscription/${SUPERBET_CONFIG.locale}/prematch`
+      const endpoint = this.buildPrematchUrl(startDate, endDate)
       console.log('📡 Superbet Prematch API Request:', { endpoint, params })
 
       const response = await axios.get<SuperbetPrematchResponse>(endpoint, {
-        params,
         timeout: 10000,
       })
 
@@ -131,7 +349,7 @@ export class SuperbetFetcher {
         return this.generateMockStructure()
       }
 
-      const endpoint = `${SUPERBET_CONFIG.baseUrl}/subscription/${SUPERBET_CONFIG.locale}/structure`
+      const endpoint = `${SUPERBET_CONFIG.offerBaseUrl}/subscription/v2/${SUPERBET_CONFIG.locale}/structure`
       console.log('📡 Superbet Structure API Request:', { endpoint })
 
       const response = await axios.get<SuperbetStructure>(endpoint, {
