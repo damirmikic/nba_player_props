@@ -17,7 +17,14 @@ export default defineConfig({
     },
   },
   server: {
+    host: '127.0.0.1',
     port: 3000,
+    strictPort: true,
+    hmr: {
+      host: '127.0.0.1',
+      protocol: 'ws',
+      clientPort: 3000,
+    },
     open: true,
   },
   build: {
