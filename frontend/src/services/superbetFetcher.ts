@@ -73,7 +73,8 @@ interface SuperbetStructure {
 }
 
 export class SuperbetFetcher {
-  static MOCK_ENABLED = true // Toggle for development
+  // Use mock in restricted environments, switch to false for production with network access
+  static MOCK_ENABLED = true
 
   /**
    * Fetch prematch odds for a specific sport/league
@@ -97,16 +98,20 @@ export class SuperbetFetcher {
         endDate: endDate.toISOString(),
       }
 
-      const response = await axios.get<SuperbetPrematchResponse>(
-        `${SUPERBET_BASE}/v3/subscription/${SUPERBET_LOCALE}/prematch`,
-        { params, timeout: 10000 }
-      )
+      const endpoint = `${SUPERBET_BASE}/v3/subscription/${SUPERBET_LOCALE}/prematch`
+      console.log('📡 Superbet API Request:', { endpoint, params })
 
+      const response = await axios.get<SuperbetPrematchResponse>(endpoint, {
+        params,
+        timeout: 10000,
+      })
+
+      console.log('✅ Superbet API Response:', response.data)
       return response.data
     } catch (error) {
-      throw new Error(
-        `Failed to fetch Superbet prematch odds: ${error instanceof Error ? error.message : String(error)}`
-      )
+      const message = error instanceof Error ? error.message : String(error)
+      console.error('❌ Superbet API Error:', message)
+      throw new Error(`Failed to fetch Superbet prematch odds: ${message}`)
     }
   }
 
@@ -136,67 +141,87 @@ export class SuperbetFetcher {
    * Generate mock prematch data for development
    */
   private static generateMockData(_league: League): SuperbetPrematchResponse {
-    const mockEvents: SuperbetEvent[] = [
-      {
-        id: 'evt_001',
-        name: 'Barcelona vs Real Madrid',
-        startTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-        sport: 'basketball',
-        league: 'Euroliga',
-        markets: [
-          {
-            id: 'mkt_001',
-            eventId: 'evt_001',
-            name: 'Player Props',
-            marketType: 'player-props',
-            outcomes: [
-              {
-                id: 'out_001',
-                name: 'Nikola Mirotic Over 17.5 Points',
-                odds: 1.85,
-                available: true,
-              },
-              {
-                id: 'out_002',
-                name: 'Nikola Mirotic Under 17.5 Points',
-                odds: 1.95,
-                available: true,
-              },
-            ],
-          },
-        ],
-      },
-      {
-        id: 'evt_002',
-        name: 'ABA Star vs Partizan',
-        startTime: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
-        sport: 'basketball',
-        league: 'ABA Liga',
-        markets: [
-          {
-            id: 'mkt_002',
-            eventId: 'evt_002',
-            name: 'Player Props',
-            marketType: 'player-props',
-            outcomes: [
-              {
-                id: 'out_003',
-                name: 'Jaleen Smith Over 15.5 Points',
-                odds: 1.88,
-                available: true,
-              },
-              {
-                id: 'out_004',
-                name: 'Jaleen Smith Under 15.5 Points',
-                odds: 1.92,
-                available: true,
-              },
-            ],
-          },
-        ],
-      },
+    const mockPlayers = [
+      { name: 'Nikola Mirotic', line: 17.5, odds: [1.85, 1.95] },
+      { name: 'Shane Larkin', line: 15.2, odds: [1.88, 1.92] },
+      { name: 'Jaleen Smith', line: 15.5, odds: [1.87, 1.93] },
+      { name: 'Anthony Randolph', line: 12.5, odds: [1.90, 1.90] },
+      { name: 'Vladimir Stimac', line: 14.3, odds: [1.86, 1.94] },
     ]
 
+    const leagueMockups: { [key: number]: { name: string; matchups: [string, string][] } } = {
+      [100]: {
+        name: 'Euroliga',
+        matchups: [
+          ['Barcelona', 'Real Madrid'],
+          ['CSKA Moscow', 'Fenerbahçe'],
+          ['Olympiacos', 'Anadolu Efes'],
+        ],
+      },
+      [101]: {
+        name: 'ABA Liga',
+        matchups: [
+          ['Partizan', 'Crvena Zvezda'],
+          ['Cedevita Zagreb', 'Split'],
+          ['Budućnost', 'Mega'],
+        ],
+      },
+      [102]: {
+        name: 'EuroCup',
+        matchups: [
+          ['Virtus Bologna', 'AS Monaco'],
+          ['Bursaspor', 'Umana Reyer'],
+        ],
+      },
+      [103]: {
+        name: 'ACB (Spain)',
+        matchups: [
+          ['Real Madrid', 'Barcelona'],
+          ['Baskonia', 'Valencia'],
+        ],
+      },
+    }
+
+    const leagueInfo = leagueMockups[_league] || leagueMockups[100]
+    const mockEvents: SuperbetEvent[] = []
+
+    leagueInfo.matchups.forEach((matchup, idx) => {
+      const eventId = `evt_${leagueInfo.name.replace(/\s/g, '_')}_${idx}`
+
+      const outcomes = mockPlayers.slice(idx, idx + 2).flatMap((player) => [
+        {
+          id: `out_${eventId}_${player.name.replace(/\s/g, '_')}_over`,
+          name: `${player.name} Over ${player.line} Points`,
+          odds: player.odds[0],
+          available: true,
+        },
+        {
+          id: `out_${eventId}_${player.name.replace(/\s/g, '_')}_under`,
+          name: `${player.name} Under ${player.line} Points`,
+          odds: player.odds[1],
+          available: true,
+        },
+      ])
+
+      mockEvents.push({
+        id: eventId,
+        name: `${matchup[0]} vs ${matchup[1]}`,
+        startTime: new Date(Date.now() + (idx + 1) * 24 * 60 * 60 * 1000).toISOString(),
+        sport: 'basketball',
+        league: leagueInfo.name,
+        markets: [
+          {
+            id: `mkt_${eventId}`,
+            eventId: eventId,
+            name: 'Player Props',
+            marketType: 'player-props',
+            outcomes,
+          },
+        ],
+      })
+    })
+
+    console.log(`📊 Mock data generated for ${leagueInfo.name}: ${mockEvents.length} games`)
     return {
       events: mockEvents,
       timestamp: new Date().toISOString(),
