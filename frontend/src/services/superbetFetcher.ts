@@ -98,6 +98,16 @@ export interface SuperbetBasketballLeague {
   nextEventTime: string | null
 }
 
+export interface SuperbetBasketballEvent {
+  id: number
+  leagueId: League
+  name: string
+  homeTeam: string
+  awayTeam: string
+  startTime: string
+  marketCount: number
+}
+
 interface SuperbetStructure {
   sports: Array<{
     id: number
@@ -177,47 +187,44 @@ export class SuperbetFetcher {
   }
 
   private static async fetchPrematchSnapshot(url: string, maxWaitMs = 5000): Promise<string> {
-    const controller = new AbortController()
-    const timer = window.setTimeout(() => controller.abort(), maxWaitMs)
+    const response = await fetch(url, {
+      headers: {
+        Accept: 'text/event-stream, application/json, text/plain, */*',
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error(`Superbet responded with ${response.status}`)
+    }
+
+    if (!response.body) {
+      return await response.text()
+    }
+
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+    const startedAt = Date.now()
+    let text = ''
 
     try {
-      const response = await fetch(url, {
-        signal: controller.signal,
-        headers: {
-          Accept: 'text/event-stream, application/json, text/plain, */*',
-        },
-      })
+      while (Date.now() - startedAt < maxWaitMs) {
+        const remainingMs = Math.max(1, maxWaitMs - (Date.now() - startedAt))
+        const result = await Promise.race<
+          ReadableStreamReadResult<Uint8Array> | { timedOut: true }
+        >([
+          reader.read(),
+          new Promise<{ timedOut: true }>((resolve) => {
+            window.setTimeout(() => resolve({ timedOut: true }), remainingMs)
+          }),
+        ])
 
-      if (!response.ok) {
-        throw new Error(`Superbet responded with ${response.status}`)
+        if ('timedOut' in result || result.done) break
+        text += decoder.decode(result.value, { stream: true })
       }
 
-      if (!response.body) {
-        return await response.text()
-      }
-
-      const reader = response.body.getReader()
-      const decoder = new TextDecoder()
-      let text = ''
-
-      while (true) {
-        const { value, done } = await reader.read()
-        if (done) break
-
-        text += decoder.decode(value, { stream: true })
-        if (text.includes('\n\n')) break
-      }
-
-      controller.abort()
       return text
-    } catch (error) {
-      if (error instanceof DOMException && error.name === 'AbortError') {
-        return ''
-      }
-
-      throw error
     } finally {
-      window.clearTimeout(timer)
+      await reader.cancel().catch(() => undefined)
     }
   }
 
@@ -227,6 +234,7 @@ export class SuperbetFetcher {
       eventCount: number
       categoryIds: Set<number>
       nextEventTime: string | null
+      eventIds: Set<number>
     }>()
 
     for (const event of events) {
@@ -240,7 +248,8 @@ export class SuperbetFetcher {
       const eventTime = fixture.utc_date || null
 
       if (existing) {
-        existing.eventCount += 1
+        existing.eventIds.add(event.event_id)
+        existing.eventCount = existing.eventIds.size
         if (fixture.category_id) existing.categoryIds.add(fixture.category_id)
         if (eventTime && (!existing.nextEventTime || eventTime < existing.nextEventTime)) {
           existing.nextEventTime = eventTime
@@ -251,6 +260,7 @@ export class SuperbetFetcher {
           eventCount: 1,
           categoryIds: new Set(fixture.category_id ? [fixture.category_id] : []),
           nextEventTime: eventTime,
+          eventIds: new Set([event.event_id]),
         })
       }
     }
@@ -267,6 +277,58 @@ export class SuperbetFetcher {
         if (b.eventCount !== a.eventCount) return b.eventCount - a.eventCount
         return a.name.localeCompare(b.name)
       })
+  }
+
+  private static splitEventName(eventName: string | undefined): { homeTeam: string; awayTeam: string } {
+    const [homeTeam = '', awayTeam = ''] = (eventName || '').split('·')
+
+    return {
+      homeTeam: homeTeam.trim(),
+      awayTeam: awayTeam.trim(),
+    }
+  }
+
+  private static deriveEvents(
+    events: SuperbetRawPrematchEvent[],
+    league: League
+  ): SuperbetBasketballEvent[] {
+    const byEventId = new Map<number, SuperbetBasketballEvent>()
+
+    for (const event of events) {
+      const fixture = event.fixture
+      if (
+        !fixture ||
+        fixture.sport_id !== SPORTS_MAPPING.basketball ||
+        fixture.tournament_id !== league ||
+        !fixture.utc_date
+      ) {
+        continue
+      }
+
+      const teams = this.splitEventName(fixture.event_name)
+      if (!teams.homeTeam && !teams.awayTeam) continue
+
+      const existing = byEventId.get(event.event_id)
+      const marketCount = event.markets?.length || 0
+
+      if (existing) {
+        existing.marketCount = Math.max(existing.marketCount, marketCount)
+      } else {
+        byEventId.set(event.event_id, {
+          id: event.event_id,
+          leagueId: league,
+          name: fixture.event_name || `${teams.homeTeam} - ${teams.awayTeam}`,
+          homeTeam: teams.homeTeam,
+          awayTeam: teams.awayTeam,
+          startTime: fixture.utc_date,
+          marketCount,
+        })
+      }
+    }
+
+    return Array.from(byEventId.values()).sort(
+      (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+    )
   }
 
   static async fetchBasketballLeagues(
@@ -300,6 +362,31 @@ export class SuperbetFetcher {
         { id: 426 as League, name: 'Turkey Super League', eventCount: 0, categoryIds: [129], nextEventTime: null },
       ]
     }
+  }
+
+  static async fetchBasketballEvents(
+    league: League,
+    startDate: Date = new Date(),
+    endDate: Date = new Date(Date.now() + SUPERBET_CONFIG.upcomingDays * 24 * 60 * 60 * 1000)
+  ): Promise<SuperbetBasketballEvent[]> {
+    try {
+      const proxyResponse = await axios.get<{ events: SuperbetBasketballEvent[] }>(
+        '/.netlify/functions/superbet-basketball-events',
+        {
+          params: { leagueId: league },
+          timeout: 12000,
+        }
+      )
+
+      if (Array.isArray(proxyResponse.data?.events)) {
+        return proxyResponse.data.events
+      }
+    } catch {
+      // Local Vite dev usually does not expose Netlify functions.
+    }
+
+    const streamText = await this.fetchPrematchSnapshot(this.buildPrematchUrl(startDate, endDate))
+    return this.deriveEvents(this.parseSseData<SuperbetRawPrematchEvent>(streamText), league)
   }
 
   /**

@@ -1,7 +1,10 @@
 import type { NormalizedProp } from '@/types/index'
+import type { SuperbetBasketballEvent } from '@services/superbetFetcher'
 
 interface GamePickerProps {
   props: NormalizedProp[]
+  games?: SuperbetBasketballEvent[]
+  isLoading?: boolean
   selectedGameIds: number[]
   onGameSelect: (gameIds: number[]) => void
 }
@@ -12,25 +15,33 @@ interface GamePickerProps {
  */
 export function GamePicker({
   props,
+  games: providedGames,
+  isLoading = false,
   selectedGameIds,
   onGameSelect,
 }: GamePickerProps) {
-  // Get unique games
-  const games = Array.from(
-    new Map(
-      props.map((p) => [
-        p.eventId,
-        {
-          id: p.eventId,
-          time: p.gameTime,
-          home: p.playerTeam.abbreviation,
-          away: p.opposingTeam.abbreviation,
-          homeTeamId: p.playerTeam.id,
-          awayTeamId: p.opposingTeam.id,
-        },
-      ])
-    ).values()
-  ).sort((a, b) => a.time.getTime() - b.time.getTime())
+  const games = providedGames?.length
+    ? providedGames.map((game) => ({
+        id: game.id,
+        time: new Date(game.startTime),
+        home: game.homeTeam,
+        away: game.awayTeam,
+        marketCount: game.marketCount,
+      }))
+    : Array.from(
+        new Map(
+          props.map((p) => [
+            p.eventId,
+            {
+              id: p.eventId,
+              time: p.gameTime,
+              home: p.playerTeam.abbreviation || p.playerTeam.name,
+              away: p.opposingTeam.abbreviation || p.opposingTeam.name,
+              marketCount: null,
+            },
+          ])
+        ).values()
+      ).sort((a, b) => a.time.getTime() - b.time.getTime())
 
   const toggleGame = (gameId: number) => {
     if (selectedGameIds.includes(gameId)) {
@@ -46,6 +57,15 @@ export function GamePicker({
     } else {
       onGameSelect(games.map((g) => g.id))
     }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="bg-white rounded-lg shadow p-4">
+        <h3 className="text-sm font-semibold text-gray-900">Games</h3>
+        <p className="mt-3 text-sm text-gray-500">Loading games...</p>
+      </div>
+    )
   }
 
   if (games.length === 0) {
@@ -78,6 +98,11 @@ export function GamePicker({
             />
             <span className="text-sm text-gray-700 flex-1">
               {game.home} @ {game.away}
+              {game.marketCount ? (
+                <span className="ml-1 text-xs text-gray-400">
+                  ({game.marketCount})
+                </span>
+              ) : null}
             </span>
             <span className="text-xs text-gray-500">
               {game.time.toLocaleTimeString([], {

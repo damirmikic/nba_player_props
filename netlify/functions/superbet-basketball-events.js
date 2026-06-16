@@ -6,24 +6,6 @@ const SUPERBET_PREMATCH_URL =
 const BASKETBALL_SPORT_ID = 4;
 const UPCOMING_DAYS = 14;
 
-const KNOWN_TOURNAMENT_NAMES = {
-  426: 'Turkey Super League',
-  2174: 'WNBA',
-  2187: 'ACB (Spain)',
-  2200: 'Poland PLK',
-  2205: 'Italy Serie A',
-  2209: 'Israel Super League',
-  2419: 'Germany BBL',
-  2423: 'France LNB Pro A',
-  2448: 'Argentina Liga Nacional',
-  29507: 'Uruguay Liga',
-  30870: 'Puerto Rico BSN',
-  38095: 'New Zealand NBL',
-  47113: 'Israel National League',
-  52234: 'Venezuela Superliga',
-  60568: 'Dominican Republic LNB',
-};
-
 function topOfHour(date) {
   const rounded = new Date(date);
   rounded.setUTCMinutes(0, 0, 0);
@@ -48,7 +30,7 @@ function parseSseData(payload) {
         items.push(parsed);
       }
     } catch (error) {
-      // The stream can contain partial chunks when the request is cut short.
+      // Superbet streams can be cut mid-chunk by our snapshot timeout.
     }
   }
 
@@ -87,53 +69,64 @@ function collectStreamSample(stream, maxWaitMs = 5000) {
   });
 }
 
-function deriveLeagues(events) {
-  const byTournament = new Map();
+function splitEventName(eventName) {
+  const [homeTeam = '', awayTeam = ''] = (eventName || '').split('·');
+  return {
+    homeTeam: homeTeam.trim(),
+    awayTeam: awayTeam.trim(),
+  };
+}
 
-  for (const event of events) {
+function deriveEvents(rawEvents, leagueId) {
+  const byEventId = new Map();
+
+  for (const event of rawEvents) {
     const fixture = event.fixture;
-    if (!fixture || fixture.sport_id !== BASKETBALL_SPORT_ID || !fixture.tournament_id) {
+    if (
+      !fixture ||
+      fixture.sport_id !== BASKETBALL_SPORT_ID ||
+      fixture.tournament_id !== leagueId ||
+      !fixture.utc_date
+    ) {
       continue;
     }
 
-    const tournamentId = fixture.tournament_id;
-    const eventTime = fixture.utc_date || null;
-    const existing = byTournament.get(tournamentId);
+    const teams = splitEventName(fixture.event_name);
+    if (!teams.homeTeam && !teams.awayTeam) continue;
+
+    const existing = byEventId.get(event.event_id);
+    const marketCount = Array.isArray(event.markets) ? event.markets.length : 0;
 
     if (existing) {
-      existing.eventIds.add(event.event_id);
-      existing.eventCount = existing.eventIds.size;
-      if (fixture.category_id) existing.categoryIds.add(fixture.category_id);
-      if (eventTime && (!existing.nextEventTime || eventTime < existing.nextEventTime)) {
-        existing.nextEventTime = eventTime;
-      }
+      existing.marketCount = Math.max(existing.marketCount, marketCount);
     } else {
-      byTournament.set(tournamentId, {
-        id: tournamentId,
-        name: KNOWN_TOURNAMENT_NAMES[tournamentId] || `Tournament ${tournamentId}`,
-        eventCount: 1,
-        categoryIds: new Set(fixture.category_id ? [fixture.category_id] : []),
-        nextEventTime: eventTime,
-        eventIds: new Set([event.event_id]),
+      byEventId.set(event.event_id, {
+        id: event.event_id,
+        leagueId,
+        name: fixture.event_name || `${teams.homeTeam} - ${teams.awayTeam}`,
+        homeTeam: teams.homeTeam,
+        awayTeam: teams.awayTeam,
+        startTime: fixture.utc_date,
+        marketCount,
       });
     }
   }
 
-  return Array.from(byTournament.values())
-    .map((league) => ({
-      id: league.id,
-      name: league.name,
-      eventCount: league.eventCount,
-      categoryIds: Array.from(league.categoryIds),
-      nextEventTime: league.nextEventTime,
-    }))
-    .sort((a, b) => {
-      if (b.eventCount !== a.eventCount) return b.eventCount - a.eventCount;
-      return a.name.localeCompare(b.name);
-    });
+  return Array.from(byEventId.values()).sort(
+    (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+  );
 }
 
-exports.handler = async function () {
+exports.handler = async function (event) {
+  const leagueId = Number(event.queryStringParameters && event.queryStringParameters.leagueId);
+
+  if (!Number.isFinite(leagueId)) {
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ message: 'leagueId query parameter is required' }),
+    };
+  }
+
   const startDate = topOfHour(new Date());
   const endDate = topOfHour(new Date(Date.now() + UPCOMING_DAYS * 24 * 60 * 60 * 1000));
   const params = new URLSearchParams({
@@ -156,26 +149,26 @@ exports.handler = async function () {
       const body = await response.text();
       return {
         statusCode: response.status,
-        body: JSON.stringify({ message: 'Failed to fetch Superbet leagues', error: body }),
+        body: JSON.stringify({ message: 'Failed to fetch Superbet events', error: body }),
       };
     }
 
     const streamText = await collectStreamSample(response.body);
-    const leagues = deriveLeagues(parseSseData(streamText));
+    const events = deriveEvents(parseSseData(streamText), leagueId);
 
     return {
       statusCode: 200,
       headers: {
         'Content-Type': 'application/json',
-        'Cache-Control': 'public, max-age=300',
+        'Cache-Control': 'public, max-age=120',
       },
-      body: JSON.stringify({ leagues }),
+      body: JSON.stringify({ events }),
     };
   } catch (error) {
     return {
       statusCode: 500,
       body: JSON.stringify({
-        message: 'Failed to fetch Superbet basketball leagues',
+        message: 'Failed to fetch Superbet basketball events',
         error: error.message,
       }),
     };

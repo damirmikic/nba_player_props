@@ -3,9 +3,11 @@ import { useOddsStore } from '@store/oddsStore'
 import { useLeagueStore } from '@store/leagueStore'
 import { useFilterStore } from '@store/filterStore'
 import { LEAGUE_DATA_SOURCES, SPORTSBOOKS } from '@/types/index'
+import type { NormalizedProp } from '@/types/index'
 
 import { OddsFetcher } from '@services/oddsFetcher'
 import { SuperbetFetcher } from '@services/superbetFetcher'
+import type { SuperbetBasketballEvent } from '@services/superbetFetcher'
 import { OddsTable } from '@components/OddsTable'
 import { FilterSidebar } from '@components/FilterSidebar'
 import { GamePicker } from '@components/GamePicker'
@@ -13,6 +15,8 @@ import { LeaguePicker } from '@components/LeaguePicker'
 
 export function App() {
   const [gameFilter, setGameFilter] = useState<number[]>([])
+  const [leagueGames, setLeagueGames] = useState<SuperbetBasketballEvent[]>([])
+  const [isLoadingGames, setIsLoadingGames] = useState(false)
 
   const selectedLeague = useLeagueStore((s) => s.selectedLeague)
   const { setProps, props, isLoading, error, setLoading, setError, getPropsForLeague } =
@@ -40,12 +44,45 @@ export function App() {
     setSelectedSportsbooks(books)
   }, [selectedLeague, setSelectedSportsbooks])
 
+  useEffect(() => {
+    setGameFilter([])
+
+    const source = LEAGUE_DATA_SOURCES[selectedLeague]
+    const shouldFetchSuperbetGames = !source || source.primary !== 'Unabated'
+
+    if (!shouldFetchSuperbetGames) {
+      setLeagueGames([])
+      return
+    }
+
+    let isMounted = true
+
+    const fetchGames = async () => {
+      setIsLoadingGames(true)
+      try {
+        const games = await SuperbetFetcher.fetchBasketballEvents(selectedLeague)
+        if (isMounted) setLeagueGames(games)
+      } catch (err) {
+        if (isMounted) setLeagueGames([])
+        console.warn('Failed to fetch Superbet games:', err)
+      } finally {
+        if (isMounted) setIsLoadingGames(false)
+      }
+    }
+
+    fetchGames()
+
+    return () => {
+      isMounted = false
+    }
+  }, [selectedLeague])
+
   // Fetch odds when league changes
   useEffect(() => {
     const fetchOdds = async () => {
       setLoading(true)
       try {
-        let normalized
+        let normalized: NormalizedProp[]
         const source = LEAGUE_DATA_SOURCES[selectedLeague]
 
         const isDynamicSuperbetLeague = !source && selectedLeague >= 400
@@ -57,6 +94,8 @@ export function App() {
         // Use appropriate fetcher based on data source
         if (source?.primary === 'Unabated') {
           normalized = await OddsFetcher.fetchAndNormalize(selectedLeague)
+        } else if (isDynamicSuperbetLeague) {
+          normalized = []
         } else {
           // Superbet for European leagues - with mock data for now
           const playerLookup = new Map()
@@ -163,6 +202,8 @@ export function App() {
               <div className="mt-4">
                 <GamePicker
                   props={currentProps}
+                  games={leagueGames}
+                  isLoading={isLoadingGames}
                   selectedGameIds={gameFilter}
                   onGameSelect={setGameFilter}
                 />
