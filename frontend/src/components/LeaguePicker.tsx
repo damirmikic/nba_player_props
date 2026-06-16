@@ -1,4 +1,4 @@
-import { League, LEAGUE_NAMES, LEAGUE_DATA_SOURCES } from '@/types/index'
+import { League, LEAGUE_DATA_SOURCES } from '@/types/index'
 import { useLeagueStore, getLeagueName } from '@store/leagueStore'
 
 interface LeaguePickerProps {

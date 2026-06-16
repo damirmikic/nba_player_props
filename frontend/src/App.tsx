@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { useOddsStore } from '@store/oddsStore'
 import { useLeagueStore } from '@store/leagueStore'
 import { useFilterStore } from '@store/filterStore'
-import { League, LEAGUE_DATA_SOURCES } from '@/types/index'
+import { LEAGUE_DATA_SOURCES } from '@/types/index'
 
 import { OddsFetcher } from '@services/oddsFetcher'
 import { SuperbetFetcher } from '@services/superbetFetcher'

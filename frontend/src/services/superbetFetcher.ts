@@ -1,3 +1,10 @@
+/**
+ * Superbet API client for European basketball leagues
+ * Endpoints:
+ * - Prematch: https://production-superbet-offer-rs.freetls.fastly.net/sb-rs/api/v3/subscription/{locale}/prematch
+ * - Structure: https://production-superbet-offer-rs.freetls.fastly.net/sb-rs/api/subscription/v2/{locale}/structure
+ */
+
 import axios from 'axios'
 import type {
   NormalizedProp,
@@ -8,235 +15,340 @@ import type {
 } from '@/types/index'
 import { MARKET_LABELS, LEAGUE_DATA_SOURCES } from '@/types/index'
 
+// Superbet API Base URL
+const SUPERBET_BASE = 'https://production-superbet-offer-rs.freetls.fastly.net/sb-rs/api'
+const SUPERBET_LOCALE = 'sr-Latn-RS' // Can switch to 'en' if needed
+
 /**
- * Superbet API Response Format (European bookmakers)
- * This is a simplified schema - adjust based on actual Superbet API
+ * Sports ID mapping for Superbet
+ * sports=4 appears to be basketball
  */
-interface SuperbetGame {
+const SPORTS_MAPPING = {
+  basketball: 4,
+}
+
+/**
+ * Superbet API Response Format
+ */
+interface SuperbetEventMarket {
   id: string | number
-  homeTeam: string
-  awayTeam: string
-  startTime: string
+  eventId: string | number
+  name: string
+  marketType: string // 'player-props' or similar
+  outcomes: Array<{
+    id: string | number
+    name: string // "Player Name Over 20.5 Points"
+    odds: number // decimal odds
+    available: boolean
+  }>
+}
+
+interface SuperbetEvent {
+  id: string | number
+  name: string // "Team A vs Team B"
+  startTime: string // ISO 8601
+  sport: string
   league: string
-  status: 'scheduled' | 'live' | 'finished'
+  markets: SuperbetEventMarket[]
 }
 
-interface SuperbetPlayerMarket {
-  playerId: number | string
-  playerName: string
-  playerTeam: string
-  marketType: string // 'points', 'rebounds', 'assists'
-  line: number
-  overOdds: number
-  underOdds: number
-  timestamp: string
-  book?: string // specific book offering
-}
-
-interface SuperbetOddsResponse {
-  games: SuperbetGame[]
-  markets: SuperbetPlayerMarket[]
+interface SuperbetPrematchResponse {
+  events: SuperbetEvent[]
   timestamp: string
 }
 
-/**
- * Mock data structure - will be replaced with real Superbet API calls
- * For now, we'll fetch and normalize data in the expected format
- */
+interface SuperbetStructure {
+  sports: Array<{
+    id: number
+    name: string
+    leagues: Array<{
+      id: number
+      name: string
+      teams: Array<{
+        id: number
+        name: string
+      }>
+    }>
+  }>
+}
+
 export class SuperbetFetcher {
   static MOCK_ENABLED = true // Toggle for development
 
   /**
-   * Fetch raw odds from Superbet for a specific league
+   * Fetch prematch odds for a specific sport/league
+   * @param league League enum value
+   * @param startDate Date range start
+   * @param endDate Date range end
    */
-  static async fetchRawOdds(league: League): Promise<SuperbetOddsResponse> {
+  static async fetchPrematchOdds(
+    league: League,
+    startDate: Date = new Date(),
+    endDate: Date = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days out
+  ): Promise<SuperbetPrematchResponse> {
     try {
-      // TODO: Replace with actual Superbet API endpoint once available
-      const endpoint = LEAGUE_DATA_SOURCES[league]?.apiEndpoint
-
-      if (!endpoint) {
-        throw new Error(`No API endpoint configured for league: ${league}`)
-      }
-
-      // Temporary: use mock data
       if (this.MOCK_ENABLED) {
         return this.generateMockData(league)
       }
 
-      const response = await axios.get<SuperbetOddsResponse>(endpoint, {
-        params: {
-          v: Math.random(), // Cache busting
-        },
-        timeout: 10000,
-      })
+      const params = {
+        sports: SPORTS_MAPPING.basketball,
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+      }
+
+      const response = await axios.get<SuperbetPrematchResponse>(
+        `${SUPERBET_BASE}/v3/subscription/${SUPERBET_LOCALE}/prematch`,
+        { params, timeout: 10000 }
+      )
 
       return response.data
     } catch (error) {
       throw new Error(
-        `Failed to fetch Superbet odds: ${error instanceof Error ? error.message : String(error)}`
+        `Failed to fetch Superbet prematch odds: ${error instanceof Error ? error.message : String(error)}`
       )
     }
   }
 
   /**
-   * Generate mock data for development/demo
-   * Remove when real API is available
+   * Fetch structure (teams, leagues, players taxonomy)
    */
-  private static generateMockData(league: League): SuperbetOddsResponse {
-    const mockPlayers: { [key: string]: { name: string; team: string }[] } = {
-      '100': [ // Euroliga
-        { name: 'Nikola Jokic', team: 'Denver' },
-        { name: 'Nikola Mirotic', team: 'Barcelona' },
-        { name: 'Shane Larkin', team: 'Anadolu Efes' },
-      ],
-      '101': [ // ABA
-        { name: 'Jaleen Smith', team: 'Partizan' },
-        { name: 'Anthony Randolph', team: 'Crvena Zvezda' },
-      ],
-    }
-
-    const players = mockPlayers[String(league)] || []
-    const markets: SuperbetPlayerMarket[] = []
-
-    for (const player of players) {
-      const marketTypes = ['points', 'rebounds', 'assists', 'points_rebounds']
-      for (const type of marketTypes) {
-        markets.push({
-          playerId: Math.floor(Math.random() * 10000),
-          playerName: player.name,
-          playerTeam: player.team,
-          marketType: type,
-          line: Math.floor(Math.random() * 20) + 5,
-          overOdds: -110,
-          underOdds: -110,
-          timestamp: new Date().toISOString(),
-        })
+  static async fetchStructure(): Promise<SuperbetStructure> {
+    try {
+      if (this.MOCK_ENABLED) {
+        return this.generateMockStructure()
       }
+
+      const response = await axios.get<SuperbetStructure>(
+        `${SUPERBET_BASE}/subscription/v2/${SUPERBET_LOCALE}/structure`,
+        { timeout: 10000 }
+      )
+
+      return response.data
+    } catch (error) {
+      throw new Error(
+        `Failed to fetch Superbet structure: ${error instanceof Error ? error.message : String(error)}`
+      )
     }
+  }
+
+  /**
+   * Generate mock prematch data for development
+   */
+  private static generateMockData(_league: League): SuperbetPrematchResponse {
+    const mockEvents: SuperbetEvent[] = [
+      {
+        id: 'evt_001',
+        name: 'Barcelona vs Real Madrid',
+        startTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        sport: 'basketball',
+        league: 'Euroliga',
+        markets: [
+          {
+            id: 'mkt_001',
+            eventId: 'evt_001',
+            name: 'Player Props',
+            marketType: 'player-props',
+            outcomes: [
+              {
+                id: 'out_001',
+                name: 'Nikola Mirotic Over 17.5 Points',
+                odds: 1.85,
+                available: true,
+              },
+              {
+                id: 'out_002',
+                name: 'Nikola Mirotic Under 17.5 Points',
+                odds: 1.95,
+                available: true,
+              },
+            ],
+          },
+        ],
+      },
+      {
+        id: 'evt_002',
+        name: 'ABA Star vs Partizan',
+        startTime: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
+        sport: 'basketball',
+        league: 'ABA Liga',
+        markets: [
+          {
+            id: 'mkt_002',
+            eventId: 'evt_002',
+            name: 'Player Props',
+            marketType: 'player-props',
+            outcomes: [
+              {
+                id: 'out_003',
+                name: 'Jaleen Smith Over 15.5 Points',
+                odds: 1.88,
+                available: true,
+              },
+              {
+                id: 'out_004',
+                name: 'Jaleen Smith Under 15.5 Points',
+                odds: 1.92,
+                available: true,
+              },
+            ],
+          },
+        ],
+      },
+    ]
 
     return {
-      games: [
-        {
-          id: `game_${Date.now()}`,
-          homeTeam: 'Team A',
-          awayTeam: 'Team B',
-          startTime: new Date(Date.now() + 86400000).toISOString(),
-          league: String(league),
-          status: 'scheduled',
-        },
-      ],
-      markets,
+      events: mockEvents,
       timestamp: new Date().toISOString(),
     }
   }
 
   /**
-   * Normalize Superbet odds into NormalizedProp[] for UI
+   * Generate mock structure
+   */
+  private static generateMockStructure(): SuperbetStructure {
+    return {
+      sports: [
+        {
+          id: 4,
+          name: 'Basketball',
+          leagues: [
+            {
+              id: 100,
+              name: 'Euroliga',
+              teams: [
+                { id: 1001, name: 'Barcelona' },
+                { id: 1002, name: 'Real Madrid' },
+              ],
+            },
+            {
+              id: 101,
+              name: 'ABA Liga',
+              teams: [
+                { id: 1003, name: 'Partizan' },
+                { id: 1004, name: 'Crvena Zvezda' },
+              ],
+            },
+          ],
+        },
+      ],
+    }
+  }
+
+  /**
+   * Normalize Superbet data into NormalizedProp[]
    */
   static normalizeOdds(
-    rawData: SuperbetOddsResponse,
+    rawData: SuperbetPrematchResponse,
     league: League,
-    playerLookup: Map<string, Player>,
-    teamLookup: Map<string, Team>
+    _playerLookup: Map<string, Player>,
+    _teamLookup: Map<string, Team>
   ): NormalizedProp[] {
     const propsMap = new Map<string, NormalizedProp>()
     const dataSource = LEAGUE_DATA_SOURCES[league]?.primary || 'Superbet'
 
-    for (const market of rawData.markets) {
-      const uniqueKey = `${market.playerId}_${market.marketType}`
+    for (const event of rawData.events) {
+      for (const market of event.markets) {
+        // Parse player name and market type from outcome names
+        // E.g., "Nikola Mirotic Over 17.5 Points" → player, line, market type
 
-      let prop = propsMap.get(uniqueKey)
+        for (const outcome of market.outcomes) {
+          const parsed = this.parseOutcomeName(outcome.name)
+          if (!parsed) continue
 
-      if (!prop) {
-        const player = playerLookup.get(String(market.playerId))
-        const playerTeam = teamLookup.get(market.playerTeam)
+          const { playerName, line, side, marketType } = parsed
+          const uniqueKey = `${event.id}_${marketType}_${playerName}_${line}`
 
-        if (!player || !playerTeam) {
-          console.warn(
-            `Skipping prop: missing data for player ${market.playerName}`
-          )
-          continue
+          let prop = propsMap.get(uniqueKey)
+
+          if (!prop) {
+            // Create minimal prop with available data
+            prop = {
+              id: uniqueKey,
+              eventId: parseInt(String(event.id), 10) || 0,
+              gameTime: new Date(event.startTime),
+              league,
+              dataSource,
+              player: {
+                id: Math.random() * 100000,
+                firstName: playerName.split(' ')[0],
+                lastName: playerName.split(' ').slice(1).join(' '),
+                position: 'F',
+                jerseyNumber: '0',
+                height: 0,
+                weight: 0,
+                birthDate: '',
+                country: '',
+                draftYear: 0,
+                statusId: 1,
+                headshotUrl: '',
+                leagueId: league,
+              },
+              playerTeam: {
+                id: 0,
+                name: event.name.split(' vs ')[0],
+                abbreviation: '',
+                logoUrl: '',
+                leagueId: league,
+                sideId: 0,
+              },
+              opposingTeam: {
+                id: 1,
+                name: event.name.split(' vs ')[1],
+                abbreviation: '',
+                logoUrl: '',
+                leagueId: league,
+                sideId: 1,
+              },
+              marketType: this.mapMarketType(marketType),
+              marketLabel: this.getMarketLabel(this.mapMarketType(marketType)) || marketType,
+              overLine: side === 'over' ? line : null,
+              underLine: side === 'under' ? line : null,
+              overOdds: new Map(),
+              underOdds: new Map(),
+              bestOverPrice: -Infinity,
+              bestOverBook: -1,
+              bestUnderPrice: -Infinity,
+              bestUnderBook: -1,
+              unabatedLine: null,
+              unabatedOverEV: null,
+              unabatedUnderEV: null,
+              lastUpdated: new Date(),
+              isActive: true,
+            }
+            propsMap.set(uniqueKey, prop)
+          }
+
+          // Add odds for this outcome
+          const bookId = 203 // Superbet
+          const oddsEntry: SideSportsbookOdds = {
+            marketLineId: parseInt(String(outcome.id), 10) || 0,
+            modifiedOn: rawData.timestamp,
+            isBlurred: false,
+            marketId: parseInt(String(market.id), 10) || 0,
+            points: line,
+            price: this.decimalToAmerican(outcome.odds),
+            americanPrice: this.decimalToAmerican(outcome.odds),
+            sourcePrice: outcome.odds,
+            sourceFormat: 2, // decimal
+            statusId: outcome.available ? 1 : 2,
+            sequenceNumber: 0,
+            bacr: null,
+            ge: null,
+          }
+
+          if (side === 'over') {
+            prop.overLine = line
+            prop.overOdds.set(bookId, oddsEntry)
+          } else {
+            prop.underLine = line
+            prop.underOdds.set(bookId, oddsEntry)
+          }
         }
-
-        // Use first game for now (would be improved with proper game matching)
-        const game = rawData.games[0]
-        const opposingTeam = teamLookup.get(
-          game?.homeTeam === market.playerTeam ? game?.awayTeam : game?.homeTeam
-        )
-
-        if (!opposingTeam) continue
-
-        const marketTypeId = this.mapMarketType(market.marketType)
-
-        prop = {
-          id: uniqueKey,
-          eventId: parseInt(String(game?.id), 10) || 0,
-          gameTime: new Date(market.timestamp),
-          league,
-          dataSource,
-          player,
-          playerTeam,
-          opposingTeam,
-          marketType: marketTypeId,
-          marketLabel: MARKET_LABELS[marketTypeId] || market.marketType,
-          overLine: market.line,
-          underLine: market.line,
-          overOdds: new Map(),
-          underOdds: new Map(),
-          bestOverPrice: -Infinity,
-          bestOverBook: -1,
-          bestUnderPrice: -Infinity,
-          bestUnderBook: -1,
-          unabatedLine: null,
-          unabatedOverEV: null,
-          unabatedUnderEV: null,
-          lastUpdated: new Date(),
-          isActive: true,
-        }
-
-        propsMap.set(uniqueKey, prop)
       }
-
-      // Add odds from Superbet (and other books if available)
-      const bookId = this.getBookId(market.book || 'superbet')
-
-      const overOddsEntry: SideSportsbookOdds = {
-        marketLineId: 0,
-        modifiedOn: market.timestamp,
-        isBlurred: false,
-        marketId: 0,
-        points: market.line,
-        price: market.overOdds,
-        americanPrice: market.overOdds,
-        sourcePrice: null,
-        sourceFormat: 1,
-        statusId: 1,
-        sequenceNumber: 0,
-        bacr: null,
-        ge: null,
-      }
-
-      const underOddsEntry: SideSportsbookOdds = {
-        marketLineId: 0,
-        modifiedOn: market.timestamp,
-        isBlurred: false,
-        marketId: 0,
-        points: market.line,
-        price: market.underOdds,
-        americanPrice: market.underOdds,
-        sourcePrice: null,
-        sourceFormat: 1,
-        statusId: 1,
-        sequenceNumber: 0,
-        bacr: null,
-        ge: null,
-      }
-
-      prop.overOdds.set(bookId, overOddsEntry)
-      prop.underOdds.set(bookId, underOddsEntry)
     }
 
-    // Second pass: calculate best prices
+    // Calculate best prices
     const finalProps = Array.from(propsMap.values())
     for (const prop of finalProps) {
       let bestOverPrice = -Infinity
@@ -258,9 +370,9 @@ export class SuperbetFetcher {
         }
       }
 
-      prop.bestOverPrice = bestOverPrice
+      prop.bestOverPrice = bestOverPrice === -Infinity ? -110 : bestOverPrice
       prop.bestOverBook = bestOverBook
-      prop.bestUnderPrice = bestUnderPrice
+      prop.bestUnderPrice = bestUnderPrice === -Infinity ? -110 : bestUnderPrice
       prop.bestUnderBook = bestUnderBook
     }
 
@@ -268,48 +380,77 @@ export class SuperbetFetcher {
   }
 
   /**
-   * Map market type string to MarketType enum
+   * Parse outcome name to extract player, line, side, market type
+   * E.g., "Nikola Mirotic Over 17.5 Points" → { playerName, line, side, marketType }
+   */
+  private static parseOutcomeName(
+    name: string
+  ): { playerName: string; line: number; side: 'over' | 'under'; marketType: string } | null {
+    // Regex: "PlayerName Over/Under XX.X Market"
+    const regex = /^(.+?)\s+(Over|Under)\s+([\d.]+)\s+(.+)$/i
+    const match = name.match(regex)
+
+    if (!match) return null
+
+    return {
+      playerName: match[1].trim(),
+      side: match[2].toLowerCase() === 'over' ? 'over' : 'under',
+      line: parseFloat(match[3]),
+      marketType: match[4].trim(),
+    }
+  }
+
+  /**
+   * Map market type name to MarketType enum
    */
   private static mapMarketType(marketType: string): number {
     const mapping: { [key: string]: number } = {
-      points: 73,
-      rebounds: 70,
-      assists: 77,
-      points_rebounds: 74,
-      points_assists: 75,
-      points_rebounds_assists: 76,
+      'points': 73,
+      'rebounds': 70,
+      'assists': 77,
+      'points+rebounds': 74,
+      'points+assists': 75,
+      'points+rebounds+assists': 76,
+      'steals': 69,
     }
-    return mapping[marketType] || 73
+    // Fuzzy match (case-insensitive, partial)
+    const key = Object.keys(mapping).find((k) =>
+      marketType.toLowerCase().includes(k) || k.includes(marketType.toLowerCase())
+    )
+    return mapping[key || 'points'] || 73
   }
 
   /**
-   * Map sportsbook name to book ID
+   * Get market label for a market type number
    */
-  private static getBookId(bookName: string): number {
-    const bookMapping: { [key: string]: number } = {
-      superbet: 203,
-      bet365: 201,
-      stoixman: 202,
-      unibet: 204,
-      betsson: 205,
-      marathonbet: 206,
-      pinnacle: 207,
-      olybet: 208,
-      fonbet: 209,
-      '1xbet': 210,
-    }
-    return bookMapping[bookName.toLowerCase()] || 203
+  private static getMarketLabel(marketTypeNum: number): string {
+    const typeNum = marketTypeNum as keyof typeof MARKET_LABELS
+    return MARKET_LABELS[typeNum] || `Market ${marketTypeNum}`
   }
 
   /**
-   * Combined: Fetch raw odds and normalize in one call
+   * Convert decimal odds to American odds
+   * Decimal 1.85 → American -120
+   */
+  private static decimalToAmerican(decimal: number): number {
+    if (decimal === 0) return -110
+    if (decimal === 1) return 0
+    if (decimal < 2) {
+      return Math.round(-100 / (decimal - 1))
+    } else {
+      return Math.round((decimal - 1) * 100)
+    }
+  }
+
+  /**
+   * Combined: Fetch and normalize
    */
   static async fetchAndNormalize(
     league: League,
     playerLookup: Map<string, Player>,
     teamLookup: Map<string, Team>
   ): Promise<NormalizedProp[]> {
-    const rawData = await this.fetchRawOdds(league)
+    const rawData = await this.fetchPrematchOdds(league)
     return this.normalizeOdds(rawData, league, playerLookup, teamLookup)
   }
 }

@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { NormalizedProp, UnabatedApiResponse, League } from '@/types/index'
+import type { NormalizedProp, League } from '@/types/index'
 
 interface OddsState {
   // Data storage per league
