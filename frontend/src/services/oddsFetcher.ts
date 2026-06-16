@@ -90,10 +90,10 @@ export class OddsFetcher {
       }
 
       // Scan all side keys — handle cases where over and under come in separate rawProp objects
-      // Unabated API convention: si1 = OVER/Yes side, si0 = UNDER/No side
+      // Unabated API convention: si0 = OVER/Yes side, si1 = UNDER/No side
       for (const [sideKey, bookOdds] of Object.entries(rawProp.sides)) {
-        const isOver = sideKey.startsWith('si1:')
-        const isUnder = sideKey.startsWith('si0:')
+        const isOver = sideKey.startsWith('si0:')
+        const isUnder = sideKey.startsWith('si1:')
         if (!isOver && !isUnder) continue
 
         const targetMap = isOver ? prop.overOdds : prop.underOdds
