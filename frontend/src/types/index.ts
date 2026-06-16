@@ -327,6 +327,7 @@ export interface Ticket {
 export interface OddsFilter {
   selectedMarkets: MarketType[];
   selectedSportsbooks: number[]; // msIds
+  selectedPlayers: number[];     // personIds
   sortBy: "bestOdds" | "lineMovement" | "alphabetical";
   searchQuery: string;
   selectedTeams: number[]; // teamIds

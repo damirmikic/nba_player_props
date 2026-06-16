@@ -1,12 +1,24 @@
+import { useRef, useEffect, useState } from 'react'
 import { SPORTSBOOKS, MARKET_LABELS, MarketType } from '@/types/index'
 
+interface PlayerOption {
+  id: number
+  name: string
+}
+
 interface FilterSidebarProps {
+  players: PlayerOption[]
   selectedMarkets: number[]
   selectedSportsbooks: number[]
+  selectedPlayers: number[]
   sortBy: 'bestOdds' | 'lineMovement' | 'alphabetical'
   searchQuery: string
   onMarketToggle: (market: number) => void
   onSportsbookToggle: (book: number) => void
+  onPlayerToggle: (personId: number) => void
+  onSelectAllMarkets: (markets: number[]) => void
+  onSelectAllSportsbooks: (books: number[]) => void
+  onSelectAllPlayers: (players: number[]) => void
   onSortChange: (sort: 'bestOdds' | 'lineMovement' | 'alphabetical') => void
   onSearchChange: (query: string) => void
   onReset: () => void
@@ -50,17 +62,61 @@ const MARKETS = [
   MarketType.DFS_FANTASY_POINTS,
 ]
 
+/** Checkbox that shows indeterminate state when partially selected */
+function SelectAllCheckbox({
+  total,
+  selectedCount,
+  onChange,
+}: {
+  total: number
+  selectedCount: number
+  onChange: (selectAll: boolean) => void
+}) {
+  const ref = useRef<HTMLInputElement>(null)
+  const allSelected = selectedCount === total
+  const noneSelected = selectedCount === 0
+
+  useEffect(() => {
+    if (ref.current) {
+      ref.current.indeterminate = !allSelected && !noneSelected
+    }
+  }, [allSelected, noneSelected])
+
+  return (
+    <input
+      ref={ref}
+      type="checkbox"
+      checked={allSelected}
+      onChange={() => onChange(!allSelected)}
+      className="w-4 h-4 rounded border-gray-300 cursor-pointer"
+    />
+  )
+}
+
 export function FilterSidebar({
+  players,
   selectedMarkets,
   selectedSportsbooks,
+  selectedPlayers,
   sortBy,
   searchQuery,
   onMarketToggle,
   onSportsbookToggle,
+  onPlayerToggle,
+  onSelectAllMarkets,
+  onSelectAllSportsbooks,
+  onSelectAllPlayers,
   onSortChange,
   onSearchChange,
   onReset,
 }: FilterSidebarProps) {
+  const [playerSearch, setPlayerSearch] = useState('')
+
+  const visiblePlayers = playerSearch
+    ? players.filter((p) =>
+        p.name.toLowerCase().includes(playerSearch.toLowerCase())
+      )
+    : players
   return (
     <div className="bg-white rounded-lg shadow p-4 space-y-6 h-screen overflow-y-auto sticky top-0">
       {/* Search */}
@@ -77,23 +133,74 @@ export function FilterSidebar({
         />
       </div>
 
+      {/* Players */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <label className="flex items-center gap-2 text-sm font-semibold text-gray-900 cursor-pointer">
+            <SelectAllCheckbox
+              total={players.length}
+              selectedCount={selectedPlayers.length}
+              onChange={(selectAll) =>
+                onSelectAllPlayers(selectAll ? players.map((p) => p.id) : [])
+              }
+            />
+            Players
+          </label>
+          <span className="text-xs text-gray-400">
+            {selectedPlayers.length === 0 ? 'all' : `${selectedPlayers.length}/${players.length}`}
+          </span>
+        </div>
+        {/* Inline search within players */}
+        <input
+          type="text"
+          placeholder="Search players..."
+          value={playerSearch}
+          onChange={(e) => setPlayerSearch(e.target.value)}
+          className="w-full px-2 py-1 mb-2 border border-gray-200 rounded text-xs focus:outline-none focus:border-blue-400"
+        />
+        <div className="space-y-1.5 max-h-48 overflow-y-auto">
+          {visiblePlayers.map((player) => (
+            <label
+              key={player.id}
+              className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 rounded px-1 py-0.5"
+            >
+              <input
+                type="checkbox"
+                checked={selectedPlayers.includes(player.id)}
+                onChange={() => onPlayerToggle(player.id)}
+                className="w-4 h-4 rounded border-gray-300 flex-shrink-0"
+              />
+              <span className="text-sm text-gray-700 truncate">{player.name}</span>
+            </label>
+          ))}
+          {visiblePlayers.length === 0 && (
+            <p className="text-xs text-gray-400 px-1">No players match</p>
+          )}
+        </div>
+      </div>
+
       {/* Markets */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <label className="block text-sm font-semibold text-gray-900">
+          <label className="flex items-center gap-2 text-sm font-semibold text-gray-900 cursor-pointer">
+            <SelectAllCheckbox
+              total={MARKETS.length}
+              selectedCount={selectedMarkets.length}
+              onChange={(selectAll) =>
+                onSelectAllMarkets(selectAll ? MARKETS.map((m) => m as number) : [])
+              }
+            />
             Markets
           </label>
-          {selectedMarkets.length > 0 && (
-            <span className="text-xs text-gray-500">
-              {selectedMarkets.length} selected
-            </span>
-          )}
+          <span className="text-xs text-gray-400">
+            {selectedMarkets.length === 0 ? 'all' : `${selectedMarkets.length}/${MARKETS.length}`}
+          </span>
         </div>
-        <div className="space-y-2 max-h-48 overflow-y-auto">
+        <div className="space-y-1.5 max-h-48 overflow-y-auto">
           {MARKETS.map((market) => (
             <label
               key={market}
-              className="flex items-center gap-2 cursor-pointer"
+              className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 rounded px-1 py-0.5"
             >
               <input
                 type="checkbox"
@@ -112,20 +219,25 @@ export function FilterSidebar({
       {/* Sportsbooks */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <label className="block text-sm font-semibold text-gray-900">
+          <label className="flex items-center gap-2 text-sm font-semibold text-gray-900 cursor-pointer">
+            <SelectAllCheckbox
+              total={BOOKS.length}
+              selectedCount={selectedSportsbooks.length}
+              onChange={(selectAll) =>
+                onSelectAllSportsbooks(selectAll ? BOOKS.map((b) => b.id) : [])
+              }
+            />
             Sportsbooks
           </label>
-          {selectedSportsbooks.length > 0 && (
-            <span className="text-xs text-gray-500">
-              {selectedSportsbooks.length} selected
-            </span>
-          )}
+          <span className="text-xs text-gray-400">
+            {selectedSportsbooks.length === 0 ? 'all' : `${selectedSportsbooks.length}/${BOOKS.length}`}
+          </span>
         </div>
-        <div className="space-y-2 max-h-48 overflow-y-auto">
+        <div className="space-y-1.5 max-h-48 overflow-y-auto">
           {BOOKS.map((book) => (
             <label
               key={book.id}
-              className="flex items-center gap-2 cursor-pointer"
+              className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 rounded px-1 py-0.5"
             >
               <input
                 type="checkbox"

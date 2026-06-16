@@ -6,11 +6,13 @@ interface FilterState extends OddsFilter {
   // Actions
   setSelectedMarkets: (markets: MarketType[]) => void
   setSelectedSportsbooks: (books: number[]) => void
+  setSelectedPlayers: (players: number[]) => void
   setSortBy: (sort: OddsFilter['sortBy']) => void
   setSearchQuery: (query: string) => void
   setSelectedTeams: (teams: number[]) => void
   toggleMarket: (market: MarketType) => void
   toggleSportsbook: (msId: number) => void
+  togglePlayer: (personId: number) => void
   toggleTeam: (teamId: number) => void
   resetFilters: () => void
 }
@@ -24,6 +26,7 @@ const DEFAULT_FILTER: OddsFilter = {
     SPORTSBOOKS.CAESARS,
     SPORTSBOOKS.BETRIVERS,
   ],
+  selectedPlayers: [],
   sortBy: 'bestOdds',
   searchQuery: '',
   selectedTeams: [],
@@ -37,6 +40,9 @@ export const useFilterStore = create<FilterState>((set) => ({
 
   setSelectedSportsbooks: (books) =>
     set({ selectedSportsbooks: books }),
+
+  setSelectedPlayers: (players) =>
+    set({ selectedPlayers: players }),
 
   setSortBy: (sort) =>
     set({ sortBy: sort }),
@@ -59,6 +65,13 @@ export const useFilterStore = create<FilterState>((set) => ({
       selectedSportsbooks: state.selectedSportsbooks.includes(msId)
         ? state.selectedSportsbooks.filter((b) => b !== msId)
         : [...state.selectedSportsbooks, msId],
+    })),
+
+  togglePlayer: (personId) =>
+    set((state) => ({
+      selectedPlayers: state.selectedPlayers.includes(personId)
+        ? state.selectedPlayers.filter((p) => p !== personId)
+        : [...state.selectedPlayers, personId],
     })),
 
   toggleTeam: (teamId) =>

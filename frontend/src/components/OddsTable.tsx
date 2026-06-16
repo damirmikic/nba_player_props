@@ -7,6 +7,7 @@ interface OddsTableProps {
   props: NormalizedProp[]
   selectedSportsbooks: number[]
   selectedMarkets: number[]
+  selectedPlayers: number[]
   searchQuery: string
   onSelectOdds?: (prop: NormalizedProp, side: 'over' | 'under', bookId: number) => void
 }
@@ -21,6 +22,7 @@ export function OddsTable({
   props,
   selectedSportsbooks,
   selectedMarkets,
+  selectedPlayers,
   searchQuery,
   onSelectOdds,
 }: OddsTableProps) {
@@ -44,6 +46,11 @@ export function OddsTable({
         if (!hasSelectedBook) return false
       }
 
+      // Player filter
+      if (selectedPlayers.length > 0 && !selectedPlayers.includes(prop.player.id)) {
+        return false
+      }
+
       // Search filter (player name or team)
       if (searchQuery) {
         const query = searchQuery.toLowerCase()
@@ -56,17 +63,21 @@ export function OddsTable({
 
       return true
     })
-  }, [props, selectedMarkets, selectedSportsbooks, searchQuery])
+  }, [props, selectedMarkets, selectedSportsbooks, selectedPlayers, searchQuery])
 
-  // Get visible sportsbooks (those with odds in filtered props)
+  // Get visible sportsbooks: intersection of selected books and books that have odds
   const visibleBooks = useMemo(() => {
     const bookIds = new Set<number>()
     for (const prop of filteredProps) {
       prop.overOdds.forEach((_v, msId: number) => bookIds.add(msId))
       prop.underOdds.forEach((_v, msId: number) => bookIds.add(msId))
     }
+    if (selectedSportsbooks.length > 0) {
+      // Only show columns for selected books (preserving filter order)
+      return selectedSportsbooks.filter((msId) => bookIds.has(msId))
+    }
     return Array.from(bookIds).sort()
-  }, [filteredProps])
+  }, [filteredProps, selectedSportsbooks])
 
   if (filteredProps.length === 0) {
     return (

@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useOddsStore } from '@store/oddsStore'
 import { useFilterStore } from '@store/filterStore'
-import { useUIStore } from '@store/uiStore'
+
 import { OddsFetcher } from '@services/oddsFetcher'
 import { OddsTable } from '@components/OddsTable'
 import { FilterSidebar } from '@components/FilterSidebar'
@@ -14,15 +14,20 @@ export function App() {
   const {
     selectedMarkets,
     selectedSportsbooks,
+    selectedPlayers,
     sortBy,
     searchQuery,
     toggleMarket,
     toggleSportsbook,
+    togglePlayer,
+    setSelectedMarkets,
+    setSelectedSportsbooks,
+    setSelectedPlayers,
     setSortBy,
     setSearchQuery,
     resetFilters,
   } = useFilterStore()
-  const { selectedTab, setSelectedTab } = useUIStore()
+
 
   // Fetch and normalize odds on mount
   useEffect(() => {
@@ -41,6 +46,17 @@ export function App() {
 
     fetchOdds()
   }, [setProps, setLoading, setError])
+
+  // Derive unique sorted player list from all props
+  const availablePlayers = useMemo(() => {
+    const map = new Map<number, string>()
+    for (const p of props) {
+      map.set(p.player.id, `${p.player.firstName} ${p.player.lastName}`)
+    }
+    return Array.from(map.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name))
+  }, [props])
 
   // Filter props by game if selected
   const filteredByGame =
@@ -87,12 +103,18 @@ export function App() {
             {/* Sidebar */}
             <div className="lg:col-span-1">
               <FilterSidebar
+                players={availablePlayers}
                 selectedMarkets={selectedMarkets}
                 selectedSportsbooks={selectedSportsbooks}
+                selectedPlayers={selectedPlayers}
                 sortBy={sortBy}
                 searchQuery={searchQuery}
                 onMarketToggle={toggleMarket}
                 onSportsbookToggle={toggleSportsbook}
+                onPlayerToggle={togglePlayer}
+                onSelectAllMarkets={setSelectedMarkets}
+                onSelectAllSportsbooks={setSelectedSportsbooks}
+                onSelectAllPlayers={setSelectedPlayers}
                 onSortChange={setSortBy}
                 onSearchChange={setSearchQuery}
                 onReset={resetFilters}
@@ -123,6 +145,7 @@ export function App() {
                 props={filteredByGame}
                 selectedSportsbooks={selectedSportsbooks}
                 selectedMarkets={selectedMarkets}
+                selectedPlayers={selectedPlayers}
                 searchQuery={searchQuery}
                 onSelectOdds={(prop, side, bookId) => {
                   console.log(
