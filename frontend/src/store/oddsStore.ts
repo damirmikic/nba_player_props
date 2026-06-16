@@ -1,34 +1,59 @@
 import { create } from 'zustand'
-import type { NormalizedProp, UnabatedApiResponse } from '@/types/index'
+import type { NormalizedProp, UnabatedApiResponse, League } from '@/types/index'
 
 interface OddsState {
-  // Raw API data
-  rawData: UnabatedApiResponse | null
+  // Data storage per league
   props: NormalizedProp[]
+  propsCache: Map<League, NormalizedProp[]> // Cache for each league
+
   isLoading: boolean
   error: string | null
-  lastFetch: Date | null
+  lastFetch: Map<League, Date> // Track last fetch per league
+  currentLeague: League
 
   // Actions
-  setRawData: (data: UnabatedApiResponse) => void
-  setProps: (props: NormalizedProp[]) => void
+  setProps: (props: NormalizedProp[], league: League) => void
   setLoading: (isLoading: boolean) => void
   setError: (error: string | null) => void
-  fetchOdds: () => Promise<void>
+  setCurrentLeague: (league: League) => void
   updateProp: (propId: string, updates: Partial<NormalizedProp>) => void
+  getPropsForLeague: (league: League) => NormalizedProp[]
+  getCachedProps: (league: League) => NormalizedProp[] | undefined
 }
 
-export const useOddsStore = create<OddsState>((set) => ({
-  rawData: null,
+export const useOddsStore = create<OddsState>((set, get) => ({
   props: [],
+  propsCache: new Map(),
   isLoading: false,
   error: null,
-  lastFetch: null,
+  lastFetch: new Map(),
+  currentLeague: 7, // Default to WNBA
 
-  setRawData: (data) => set({ rawData: data }),
-  setProps: (props) => set({ props }),
+  setCurrentLeague: (league: League) => set({ currentLeague: league }),
+
+  setProps: (props: NormalizedProp[], league: League) =>
+    set((state) => {
+      const cache = new Map(state.propsCache)
+      cache.set(league, props)
+      return {
+        props: league === state.currentLeague ? props : state.props,
+        propsCache: cache,
+        lastFetch: new Map(state.lastFetch).set(league, new Date()),
+      }
+    }),
+
   setLoading: (isLoading) => set({ isLoading }),
   setError: (error) => set({ error }),
+
+  getPropsForLeague: (league: League) => {
+    const state = get()
+    return state.propsCache.get(league) || []
+  },
+
+  getCachedProps: (league: League) => {
+    const state = get()
+    return state.propsCache.get(league)
+  },
 
   updateProp: (propId, updates) =>
     set((state) => ({
@@ -36,26 +61,4 @@ export const useOddsStore = create<OddsState>((set) => ({
         p.id === propId ? { ...p, ...updates } : p
       ),
     })),
-
-  fetchOdds: async () => {
-    set({ isLoading: true, error: null })
-    try {
-      const response = await fetch(
-        'https://content.unabated.com/markets/v2/league/7/propodds.json?v=' +
-          Math.random()
-      )
-      if (!response.ok) throw new Error(`HTTP ${response.status}`)
-      const data = (await response.json()) as UnabatedApiResponse
-      set({
-        rawData: data,
-        lastFetch: new Date(),
-        isLoading: false,
-      })
-    } catch (err) {
-      set({
-        error: err instanceof Error ? err.message : 'Failed to fetch odds',
-        isLoading: false,
-      })
-    }
-  },
 }))

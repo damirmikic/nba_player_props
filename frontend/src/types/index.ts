@@ -8,8 +8,38 @@
 // ============================================================================
 
 export enum League {
+  NBA = 1,
   WNBA = 7,
-  NBA = 1, // for future expansion
+  EUROLIGA = 100,
+  EUROLEAGUE = 100, // alias
+  ABA = 101,
+  EUROCUP = 102,
+  ACB = 103,
+  GREECE = 104,
+  TURKEY = 105,
+  ITALY = 106,
+  FRANCE = 107,
+  GERMANY = 108,
+  NCAA = 109,
+  VTB = 110,
+  LITHUANIA = 111,
+}
+
+export const LEAGUE_NAMES: Record<League, string> = {
+  [League.NBA]: 'NBA',
+  [League.WNBA]: 'WNBA',
+  [League.EUROLIGA]: 'Euroliga',
+  [League.ABA]: 'ABA Liga',
+  [League.EUROCUP]: 'EuroCup',
+  [League.ACB]: 'ACB (Spain)',
+  [League.GREECE]: 'Greece',
+  [League.TURKEY]: 'Turkey',
+  [League.ITALY]: 'Italy',
+  [League.FRANCE]: 'France',
+  [League.GERMANY]: 'Germany',
+  [League.NCAA]: 'NCAA',
+  [League.VTB]: 'VTB',
+  [League.LITHUANIA]: 'Lithuania',
 }
 
 export enum PeriodType {
@@ -79,6 +109,7 @@ export interface SportsBookLookup {
 
 // Canonical sportsbook ID → market source ID mapping
 export const SPORTSBOOKS = {
+  // US Books (Unabated)
   DRAFTKINGS: 1,
   FANDUEL: 2,
   BETMGM: 4,
@@ -102,7 +133,97 @@ export const SPORTSBOOKS = {
   NOVIG: 89,
   POLYMARKET: 107,
   UNABATED_LINE: 49, // Vig-free consensus (special, not a real book)
+
+  // European Books (Superbet)
+  BET365: 201,
+  STOIXMAN: 202,
+  SUPERBET: 203,
+  UNIBET: 204,
+  BETSSON: 205,
+  MARATHONBET: 206,
+  PINNACLE: 207,
+  OLYBET: 208,
+  FONBET: 209,
+  X1BET: 210,
 } as const;
+
+// League → Data Sources mapping
+export const LEAGUE_DATA_SOURCES: Record<League, {
+  primary: string;
+  books: (typeof SPORTSBOOKS)[keyof typeof SPORTSBOOKS][];
+  apiEndpoint?: string;
+}> = {
+  [League.NBA]: {
+    primary: 'Unabated',
+    books: [SPORTSBOOKS.DRAFTKINGS, SPORTSBOOKS.FANDUEL, SPORTSBOOKS.BETMGM, SPORTSBOOKS.CAESARS, SPORTSBOOKS.BETRIVERS],
+    apiEndpoint: 'https://content.unabated.com/markets/v2/league/1/propodds.json',
+  },
+  [League.WNBA]: {
+    primary: 'Unabated',
+    books: [SPORTSBOOKS.DRAFTKINGS, SPORTSBOOKS.FANDUEL, SPORTSBOOKS.BETMGM, SPORTSBOOKS.CAESARS, SPORTSBOOKS.BETRIVERS],
+    apiEndpoint: 'https://content.unabated.com/markets/v2/league/7/propodds.json',
+  },
+  [League.EUROLIGA]: {
+    primary: 'Superbet',
+    books: [SPORTSBOOKS.BET365, SPORTSBOOKS.STOIXMAN, SPORTSBOOKS.SUPERBET],
+    apiEndpoint: 'https://superbet.com/api/markets/euroliga', // TBD
+  },
+  [League.ABA]: {
+    primary: 'Superbet',
+    books: [SPORTSBOOKS.SUPERBET, SPORTSBOOKS.BET365],
+    apiEndpoint: 'https://superbet.com/api/markets/aba',
+  },
+  [League.EUROCUP]: {
+    primary: 'Superbet',
+    books: [SPORTSBOOKS.BET365, SPORTSBOOKS.STOIXMAN, SPORTSBOOKS.SUPERBET],
+    apiEndpoint: 'https://superbet.com/api/markets/eurocup',
+  },
+  [League.ACB]: {
+    primary: 'Superbet',
+    books: [SPORTSBOOKS.BET365, SPORTSBOOKS.STOIXMAN, SPORTSBOOKS.SUPERBET],
+    apiEndpoint: 'https://superbet.com/api/markets/acb',
+  },
+  [League.GREECE]: {
+    primary: 'Stoixman',
+    books: [SPORTSBOOKS.STOIXMAN, SPORTSBOOKS.BET365],
+    apiEndpoint: 'https://superbet.com/api/markets/greece',
+  },
+  [League.TURKEY]: {
+    primary: 'Superbet',
+    books: [SPORTSBOOKS.SUPERBET],
+    apiEndpoint: 'https://superbet.com/api/markets/turkey',
+  },
+  [League.ITALY]: {
+    primary: 'Superbet',
+    books: [SPORTSBOOKS.STOIXMAN, SPORTSBOOKS.BET365, SPORTSBOOKS.SUPERBET],
+    apiEndpoint: 'https://superbet.com/api/markets/italy',
+  },
+  [League.FRANCE]: {
+    primary: 'Superbet',
+    books: [SPORTSBOOKS.BET365, SPORTSBOOKS.SUPERBET, SPORTSBOOKS.STOIXMAN],
+    apiEndpoint: 'https://superbet.com/api/markets/france',
+  },
+  [League.GERMANY]: {
+    primary: 'Superbet',
+    books: [SPORTSBOOKS.BET365, SPORTSBOOKS.SUPERBET, SPORTSBOOKS.STOIXMAN],
+    apiEndpoint: 'https://superbet.com/api/markets/germany',
+  },
+  [League.NCAA]: {
+    primary: 'Unabated',
+    books: [SPORTSBOOKS.DRAFTKINGS, SPORTSBOOKS.FANDUEL],
+    apiEndpoint: 'https://content.unabated.com/markets/v2/league/90/propodds.json',
+  },
+  [League.VTB]: {
+    primary: 'Superbet',
+    books: [SPORTSBOOKS.X1BET, SPORTSBOOKS.FONBET],
+    apiEndpoint: 'https://superbet.com/api/markets/vtb',
+  },
+  [League.LITHUANIA]: {
+    primary: 'OlyBet',
+    books: [SPORTSBOOKS.OLYBET],
+    apiEndpoint: 'https://superbet.com/api/markets/lithuania',
+  },
+};
 
 // ============================================================================
 // MARKET TYPES (betTypeId)
@@ -272,6 +393,8 @@ export interface NormalizedProp {
   id: string; // composite: {eventId}_{betTypeId}_{personId}
   eventId: number;
   gameTime: Date;
+  league: League; // Added for multi-league support
+  dataSource: string; // 'Unabated', 'Superbet', 'Bet365', etc.
   player: Player;
   playerTeam: Team;
   opposingTeam: Team;

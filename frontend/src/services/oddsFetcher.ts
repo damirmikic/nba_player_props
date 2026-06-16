@@ -3,22 +3,26 @@ import type {
   UnabatedApiResponse,
   NormalizedProp,
   SideSportsbookOdds,
+  League,
 } from '@/types/index'
-import { MARKET_LABELS } from '@/types/index'
-
-const UNABATED_API_URL =
-  'https://content.unabated.com/markets/v2/league/7/propodds.json'
+import { MARKET_LABELS, LEAGUE_DATA_SOURCES } from '@/types/index'
 
 export class OddsFetcher {
   /**
-   * Fetch raw propodds data from Unabated CDN
+   * Fetch raw propodds data from Unabated CDN for a specific league
    */
-  static async fetchRawOdds(): Promise<UnabatedApiResponse> {
+  static async fetchRawOdds(league: League = 7): Promise<UnabatedApiResponse> {
     try {
-      const response = await axios.get<UnabatedApiResponse>(UNABATED_API_URL, {
+      const source = LEAGUE_DATA_SOURCES[league]
+      if (!source?.apiEndpoint) {
+        throw new Error(`No Unabated endpoint configured for league: ${league}`)
+      }
+
+      const response = await axios.get<UnabatedApiResponse>(source.apiEndpoint, {
         params: {
           v: Math.random(), // Cache busting
         },
+        timeout: 10000,
       })
       return response.data
     } catch (error) {
@@ -37,7 +41,7 @@ export class OddsFetcher {
    * - Sportsbook odds (price, line, bacr, ge)
    * - Market type (betTypeId → human label)
    */
-  static normalizeOdds(rawData: UnabatedApiResponse): NormalizedProp[] {
+  static normalizeOdds(rawData: UnabatedApiResponse, league: League = 7): NormalizedProp[] {
     const propsMap = new Map<string, NormalizedProp>()
 
     for (const rawProp of rawData.odds['lg7:pt1:pregame']) {
@@ -67,6 +71,8 @@ export class OddsFetcher {
           id: uniqueKey,
           eventId: rawProp.eventId,
           gameTime: new Date(rawProp.eventStart),
+          league,
+          dataSource: 'Unabated',
           player,
           playerTeam,
           opposingTeam,
@@ -150,8 +156,8 @@ export class OddsFetcher {
   /**
    * Combined: Fetch raw odds and normalize in one call
    */
-  static async fetchAndNormalize(): Promise<NormalizedProp[]> {
-    const rawData = await this.fetchRawOdds()
-    return this.normalizeOdds(rawData)
+  static async fetchAndNormalize(league: League = 7): Promise<NormalizedProp[]> {
+    const rawData = await this.fetchRawOdds(league)
+    return this.normalizeOdds(rawData, league)
   }
 }

@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState } from 'react'
-import { SPORTSBOOKS, MARKET_LABELS, MarketType } from '@/types/index'
+import { SPORTSBOOKS, MARKET_LABELS, MarketType, LEAGUE_DATA_SOURCES } from '@/types/index'
+import { useLeagueStore } from '@store/leagueStore'
 
 interface PlayerOption {
   id: number
@@ -24,29 +25,40 @@ interface FilterSidebarProps {
   onReset: () => void
 }
 
-const BOOKS = [
-  { id: SPORTSBOOKS.DRAFTKINGS, name: 'DraftKings' },
-  { id: SPORTSBOOKS.FANDUEL, name: 'FanDuel' },
-  { id: SPORTSBOOKS.BETMGM, name: 'BetMGM' },
-  { id: SPORTSBOOKS.CAESARS, name: 'Caesars' },
-  { id: SPORTSBOOKS.BETRIVERS, name: 'BetRivers' },
-  { id: SPORTSBOOKS.CIRCA, name: 'Circa' },
-  { id: SPORTSBOOKS.BOOKMAKER, name: 'Bookmaker' },
-  { id: SPORTSBOOKS.BOVADA, name: 'Bovada' },
-  { id: SPORTSBOOKS.HARD_ROCK, name: 'Hard Rock' },
-  { id: SPORTSBOOKS.SUGARHOUSE, name: 'SugarHouse' },
-  { id: SPORTSBOOKS.PARX, name: 'Parx' },
-  { id: SPORTSBOOKS.THESCORE_US, name: 'ESPN Bet' },
-  { id: SPORTSBOOKS.THESCORE_CA, name: 'TheScore CA' },
-  { id: SPORTSBOOKS.PROPHET_EXCHANGE, name: 'Prophet Exchange' },
-  { id: SPORTSBOOKS.PRIZEPICKS, name: 'PrizePicks' },
-  { id: SPORTSBOOKS.UNDERDOG_FANTASY, name: 'Underdog Fantasy' },
-  { id: SPORTSBOOKS.BETFAIR, name: 'Betfair' },
-  { id: SPORTSBOOKS.SLEEPER, name: 'Sleeper' },
-  { id: SPORTSBOOKS.FANATICS, name: 'Fanatics' },
-  { id: SPORTSBOOKS.NOVIG, name: 'NoVig' },
-  { id: SPORTSBOOKS.POLYMARKET, name: 'Polymarket' },
-]
+// All books mapping
+const ALL_BOOKS: { [key: number]: string } = {
+  [SPORTSBOOKS.DRAFTKINGS]: 'DraftKings',
+  [SPORTSBOOKS.FANDUEL]: 'FanDuel',
+  [SPORTSBOOKS.BETMGM]: 'BetMGM',
+  [SPORTSBOOKS.CAESARS]: 'Caesars',
+  [SPORTSBOOKS.BETRIVERS]: 'BetRivers',
+  [SPORTSBOOKS.CIRCA]: 'Circa',
+  [SPORTSBOOKS.BOOKMAKER]: 'Bookmaker',
+  [SPORTSBOOKS.BOVADA]: 'Bovada',
+  [SPORTSBOOKS.HARD_ROCK]: 'Hard Rock',
+  [SPORTSBOOKS.SUGARHOUSE]: 'SugarHouse',
+  [SPORTSBOOKS.PARX]: 'Parx',
+  [SPORTSBOOKS.THESCORE_US]: 'ESPN Bet',
+  [SPORTSBOOKS.THESCORE_CA]: 'TheScore CA',
+  [SPORTSBOOKS.PROPHET_EXCHANGE]: 'Prophet Exchange',
+  [SPORTSBOOKS.PRIZEPICKS]: 'PrizePicks',
+  [SPORTSBOOKS.UNDERDOG_FANTASY]: 'Underdog Fantasy',
+  [SPORTSBOOKS.BETFAIR]: 'Betfair',
+  [SPORTSBOOKS.SLEEPER]: 'Sleeper',
+  [SPORTSBOOKS.FANATICS]: 'Fanatics',
+  [SPORTSBOOKS.NOVIG]: 'NoVig',
+  [SPORTSBOOKS.POLYMARKET]: 'Polymarket',
+  [SPORTSBOOKS.BET365]: 'Bet365',
+  [SPORTSBOOKS.STOIXMAN]: 'Stoixman',
+  [SPORTSBOOKS.SUPERBET]: 'Superbet',
+  [SPORTSBOOKS.UNIBET]: 'Unibet',
+  [SPORTSBOOKS.BETSSON]: 'Betsson',
+  [SPORTSBOOKS.MARATHONBET]: 'Marathon Bet',
+  [SPORTSBOOKS.PINNACLE]: 'Pinnacle',
+  [SPORTSBOOKS.OLYBET]: 'OlyBet',
+  [SPORTSBOOKS.FONBET]: 'FonBet',
+  [SPORTSBOOKS.X1BET]: '1xBet',
+}
 
 const MARKETS = [
   MarketType.POINTS,
@@ -111,6 +123,14 @@ export function FilterSidebar({
   onReset,
 }: FilterSidebarProps) {
   const [playerSearch, setPlayerSearch] = useState('')
+  const selectedLeague = useLeagueStore((s) => s.selectedLeague)
+
+  // Get books available for current league
+  const leagueBooks = LEAGUE_DATA_SOURCES[selectedLeague]?.books || []
+  const BOOKS = leagueBooks.map((id) => ({
+    id,
+    name: ALL_BOOKS[id] || `Book ${id}`,
+  }))
 
   const visiblePlayers = playerSearch
     ? players.filter((p) =>
@@ -118,7 +138,7 @@ export function FilterSidebar({
       )
     : players
   return (
-    <div className="bg-white rounded-lg shadow p-4 space-y-6 h-screen overflow-y-auto sticky top-0">
+    <div className="bg-white rounded-lg shadow p-4 space-y-6 h-screen overflow-y-auto sticky top-28">
       {/* Search */}
       <div>
         <label className="block text-sm font-semibold text-gray-900 mb-2">
