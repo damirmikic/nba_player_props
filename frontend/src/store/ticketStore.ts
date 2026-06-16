@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { SelectedProp, Ticket } from '@types'
+import type { SelectedProp, Ticket } from '@/types/index'
 
 interface TicketState {
   selections: SelectedProp[]

@@ -1,6 +1,6 @@
-import { useMemo } from 'react'
-import type { NormalizedProp, Sportsbook } from '@types'
-import { SPORTSBOOKS } from '@types'
+import { useMemo, Fragment } from 'react'
+import type { NormalizedProp } from '@/types/index'
+import { SPORTSBOOKS } from '@/types/index'
 import { OddsCell } from './OddsCell'
 
 interface OddsTableProps {
@@ -62,8 +62,8 @@ export function OddsTable({
   const visibleBooks = useMemo(() => {
     const bookIds = new Set<number>()
     for (const prop of filteredProps) {
-      prop.overOdds.forEach((_, msId) => bookIds.add(msId))
-      prop.underOdds.forEach((_, msId) => bookIds.add(msId))
+      prop.overOdds.forEach((_v, msId: number) => bookIds.add(msId))
+      prop.underOdds.forEach((_v, msId: number) => bookIds.add(msId))
     }
     return Array.from(bookIds).sort()
   }, [filteredProps])
@@ -82,35 +82,34 @@ export function OddsTable({
 
   return (
     <div className="bg-white rounded-lg shadow overflow-x-auto">
-      <table className="min-w-full">
+      <table className="min-w-full table-fixed">
         <thead className="bg-gray-50 border-b border-gray-200">
           <tr>
-            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 w-48 sticky left-0 bg-gray-50 z-10">
+            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 sticky left-0 bg-gray-50 z-10" style={{ width: 180, minWidth: 180 }}>
               Player / Market
             </th>
             {visibleBooks.map((msId) => (
               <th
                 key={`book-${msId}`}
                 colSpan={2}
-                className="px-2 py-3 text-center text-xs font-semibold text-gray-700 border-l border-gray-200"
+                className="py-3 text-center text-xs font-semibold text-gray-700 border-l border-gray-200"
+                style={{ width: 136, minWidth: 136 }}
               >
-                <div className="text-gray-900">{getBookName(msId)}</div>
+                {getBookName(msId)}
               </th>
             ))}
           </tr>
-          <tr className="bg-white border-b border-gray-200">
-            <th className="px-4 py-2 text-left text-xs font-semibold text-gray-600 sticky left-0 bg-white z-10">
-              {/* Empty for player column */}
-            </th>
+          <tr className="bg-gray-50 border-b border-gray-200">
+            <th className="sticky left-0 bg-gray-50 z-10" />
             {visibleBooks.map((msId) => (
-              <div key={`labels-${msId}`} className="flex">
-                <th className="px-1 py-2 text-center text-xs text-gray-600 w-24 border-l border-gray-200">
+              <Fragment key={`labels-${msId}`}>
+                <th className="py-1.5 text-center text-xs font-medium text-gray-500 border-l border-gray-200" style={{ width: 68, minWidth: 68 }}>
                   OVER
                 </th>
-                <th className="px-1 py-2 text-center text-xs text-gray-600 w-24">
+                <th className="py-1.5 text-center text-xs font-medium text-gray-500" style={{ width: 68, minWidth: 68 }}>
                   UNDER
                 </th>
-              </div>
+              </Fragment>
             ))}
           </tr>
         </thead>
@@ -120,59 +119,52 @@ export function OddsTable({
               key={prop.id}
               className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}
             >
-              {/* Player / Market header */}
-              <td className="px-4 py-3 text-sm font-medium text-gray-900 sticky left-0 bg-inherit z-10">
-                <div className="flex items-center gap-2">
+              {/* Player / Market info */}
+              <td className="px-4 py-2 text-sm font-medium text-gray-900 sticky left-0 bg-inherit z-10" style={{ width: 180, minWidth: 180 }}>
+                <div className="flex items-center gap-2 min-w-0">
                   {prop.player.headshotUrl && (
                     <img
                       src={`https://assets.unabated.com/${prop.player.headshotUrl}`}
                       alt={prop.player.firstName}
-                      className="h-6 w-6 rounded-full object-cover"
+                      className="h-7 w-7 rounded-full object-cover flex-shrink-0"
                       onError={(e) => (e.currentTarget.style.display = 'none')}
                     />
                   )}
-                  <div>
-                    <div className="font-semibold">
+                  <div className="min-w-0">
+                    <div className="font-semibold truncate">
                       {prop.player.firstName} {prop.player.lastName}
-                      <span className="text-gray-500 ml-2">
+                      <span className="text-gray-500 ml-1 font-normal text-xs">
                         ({prop.playerTeam.abbreviation})
                       </span>
                     </div>
-                    <div className="text-xs text-gray-600">{prop.marketLabel}</div>
-                    <div className="text-xs text-gray-500">
-                      vs {prop.opposingTeam.abbreviation}
-                    </div>
+                    <div className="text-xs text-gray-600 truncate">{prop.marketLabel}</div>
+                    <div className="text-xs text-gray-400">vs {prop.opposingTeam.abbreviation}</div>
                   </div>
                 </div>
               </td>
 
               {/* Over/Under odds for each book */}
               {visibleBooks.map((msId) => (
-                <div key={`odds-${prop.id}-${msId}`} className="flex border-l border-gray-200">
+                <Fragment key={`odds-${prop.id}-${msId}`}>
                   {/* OVER */}
-                  <td className="px-1 py-2 w-24">
+                  <td className="p-1 border-l border-gray-200 align-middle" style={{ width: 68, minWidth: 68 }}>
                     <OddsCell
                       odds={prop.overOdds.get(msId)}
                       bookName={getBookName(msId)}
                       isBestOdds={msId === prop.bestOverBook}
-                      onClick={() =>
-                        onSelectOdds?.(prop, 'over', msId)
-                      }
+                      onClick={() => onSelectOdds?.(prop, 'over', msId)}
                     />
                   </td>
-
                   {/* UNDER */}
-                  <td className="px-1 py-2 w-24">
+                  <td className="p-1 align-middle" style={{ width: 68, minWidth: 68 }}>
                     <OddsCell
                       odds={prop.underOdds.get(msId)}
                       bookName={getBookName(msId)}
                       isBestOdds={msId === prop.bestUnderBook}
-                      onClick={() =>
-                        onSelectOdds?.(prop, 'under', msId)
-                      }
+                      onClick={() => onSelectOdds?.(prop, 'under', msId)}
                     />
                   </td>
-                </div>
+                </Fragment>
               ))}
             </tr>
           ))}

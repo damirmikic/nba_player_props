@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { NormalizedProp, UnabatedApiResponse } from '@types'
+import type { NormalizedProp, UnabatedApiResponse } from '@/types/index'
 
 interface OddsState {
   // Raw API data

@@ -1,14 +1,9 @@
 import axios from 'axios'
 import type {
   UnabatedApiResponse,
-  PropMarket,
   NormalizedProp,
-  Player,
-  Team,
-  Sportsbook,
-  SPORTSBOOKS,
-} from '@types'
-import { MARKET_LABELS } from '@types'
+} from '@/types/index'
+import { MARKET_LABELS } from '@/types/index'
 
 const UNABATED_API_URL =
   'https://content.unabated.com/markets/v2/league/7/propodds.json'

@@ -1,4 +1,4 @@
-import type { NormalizedProp } from '@types'
+import type { NormalizedProp } from '@/types/index'
 
 interface GamePickerProps {
   props: NormalizedProp[]

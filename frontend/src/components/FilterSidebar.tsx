@@ -1,4 +1,4 @@
-import { SPORTSBOOKS, MARKET_LABELS, MarketType } from '@types'
+import { SPORTSBOOKS, MARKET_LABELS, MarketType } from '@/types/index'
 
 interface FilterSidebarProps {
   selectedMarkets: number[]

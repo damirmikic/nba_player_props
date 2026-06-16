@@ -1,6 +1,6 @@
 import { create } from 'zustand'
-import { SPORTSBOOKS } from '@types'
-import type { MarketType, OddsFilter } from '@types'
+import { SPORTSBOOKS } from '@/types/index'
+import type { MarketType, OddsFilter } from '@/types/index'
 
 interface FilterState extends OddsFilter {
   // Actions
