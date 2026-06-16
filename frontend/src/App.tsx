@@ -182,6 +182,15 @@ export function App() {
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
             {/* Sidebar */}
             <div className="lg:col-span-1">
+              <div className="mb-4">
+                <GamePicker
+                  props={currentProps}
+                  games={leagueGames}
+                  isLoading={isLoadingGames}
+                  selectedGameIds={gameFilter}
+                  onGameSelect={setGameFilter}
+                />
+              </div>
               <FilterSidebar
                 players={availablePlayers}
                 selectedMarkets={selectedMarkets}
@@ -199,15 +208,6 @@ export function App() {
                 onSearchChange={setSearchQuery}
                 onReset={resetFilters}
               />
-              <div className="mt-4">
-                <GamePicker
-                  props={currentProps}
-                  games={leagueGames}
-                  isLoading={isLoadingGames}
-                  selectedGameIds={gameFilter}
-                  onGameSelect={setGameFilter}
-                />
-              </div>
             </div>
 
             {/* Main odds grid */}
