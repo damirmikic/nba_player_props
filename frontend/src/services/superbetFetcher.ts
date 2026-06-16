@@ -1,8 +1,9 @@
 /**
  * Superbet API client for European basketball leagues
+ * Configuration based on actual Superbet web app
  * Endpoints:
- * - Prematch: https://production-superbet-offer-rs.freetls.fastly.net/sb-rs/api/v3/subscription/{locale}/prematch
- * - Structure: https://production-superbet-offer-rs.freetls.fastly.net/sb-rs/api/subscription/v2/{locale}/structure
+ * - Prematch: https://production-superbet-offer-rs.freetls.fastly.net/sb-rs/api/v2/subscription/{locale}/prematch
+ * - Stats: https://scorealarm-stats.freetls.fastly.net
  */
 
 import axios from 'axios'
@@ -15,16 +16,22 @@ import type {
 } from '@/types/index'
 import { MARKET_LABELS, LEAGUE_DATA_SOURCES } from '@/types/index'
 
-// Superbet API Base URL
-const SUPERBET_BASE = 'https://production-superbet-offer-rs.freetls.fastly.net/sb-rs/api'
-const SUPERBET_LOCALE = 'sr-Latn-RS' // Can switch to 'en' if needed
+// Superbet API Configuration
+const SUPERBET_CONFIG = {
+  baseUrl: 'https://production-superbet-offer-rs.freetls.fastly.net/sb-rs/api/v2',
+  statsUrl: 'https://scorealarm-stats.freetls.fastly.net',
+  locale: 'sr-Latn-RS',
+  soccerSportId: 5,
+  basketballSportId: 4,
+  tennisSportId: 2,
+  upcomingDays: 14,
+}
 
 /**
  * Sports ID mapping for Superbet
- * sports=4 appears to be basketball
  */
 const SPORTS_MAPPING = {
-  basketball: 4,
+  basketball: SUPERBET_CONFIG.basketballSportId,
 }
 
 /**
@@ -98,19 +105,19 @@ export class SuperbetFetcher {
         endDate: endDate.toISOString(),
       }
 
-      const endpoint = `${SUPERBET_BASE}/v3/subscription/${SUPERBET_LOCALE}/prematch`
-      console.log('📡 Superbet API Request:', { endpoint, params })
+      const endpoint = `${SUPERBET_CONFIG.baseUrl}/subscription/${SUPERBET_CONFIG.locale}/prematch`
+      console.log('📡 Superbet Prematch API Request:', { endpoint, params })
 
       const response = await axios.get<SuperbetPrematchResponse>(endpoint, {
         params,
         timeout: 10000,
       })
 
-      console.log('✅ Superbet API Response:', response.data)
+      console.log('✅ Superbet Prematch Response:', response.data)
       return response.data
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
-      console.error('❌ Superbet API Error:', message)
+      console.error('❌ Superbet Prematch Error:', message)
       throw new Error(`Failed to fetch Superbet prematch odds: ${message}`)
     }
   }
@@ -124,16 +131,19 @@ export class SuperbetFetcher {
         return this.generateMockStructure()
       }
 
-      const response = await axios.get<SuperbetStructure>(
-        `${SUPERBET_BASE}/subscription/v2/${SUPERBET_LOCALE}/structure`,
-        { timeout: 10000 }
-      )
+      const endpoint = `${SUPERBET_CONFIG.baseUrl}/subscription/${SUPERBET_CONFIG.locale}/structure`
+      console.log('📡 Superbet Structure API Request:', { endpoint })
 
+      const response = await axios.get<SuperbetStructure>(endpoint, {
+        timeout: 10000,
+      })
+
+      console.log('✅ Superbet Structure Response:', response.data)
       return response.data
     } catch (error) {
-      throw new Error(
-        `Failed to fetch Superbet structure: ${error instanceof Error ? error.message : String(error)}`
-      )
+      const message = error instanceof Error ? error.message : String(error)
+      console.error('❌ Superbet Structure Error:', message)
+      throw new Error(`Failed to fetch Superbet structure: ${message}`)
     }
   }
 
@@ -468,6 +478,35 @@ export class SuperbetFetcher {
   }
 
   /**
+   * Fetch player statistics (for future EV calculations)
+   * @param sport Sport ID
+   * @param variant Stats variant (e.g., 'rssuperbetsport')
+   */
+  static async fetchPlayerStats(sport: number = SUPERBET_CONFIG.basketballSportId): Promise<any> {
+    try {
+      if (this.MOCK_ENABLED) {
+        console.log('📊 Mock stats mode enabled')
+        return { mock: true }
+      }
+
+      const endpoint = `${SUPERBET_CONFIG.statsUrl}/api/stats`
+      console.log('📡 Superbet Stats API Request:', { endpoint, sport })
+
+      const response = await axios.get(endpoint, {
+        params: { sport, variant: 'rssuperbetsport' },
+        timeout: 10000,
+      })
+
+      console.log('✅ Superbet Stats Response:', response.data)
+      return response.data
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      console.warn('⚠️ Superbet Stats Error (non-blocking):', message)
+      return null
+    }
+  }
+
+  /**
    * Combined: Fetch and normalize
    */
   static async fetchAndNormalize(
@@ -479,3 +518,6 @@ export class SuperbetFetcher {
     return this.normalizeOdds(rawData, league, playerLookup, teamLookup)
   }
 }
+
+// Export config for use in other services
+export { SUPERBET_CONFIG }
