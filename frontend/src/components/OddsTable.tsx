@@ -96,15 +96,14 @@ export function OddsTable({
       <table className="min-w-full table-fixed">
         <thead className="bg-gray-50 border-b border-gray-200">
           <tr>
-            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 sticky left-0 bg-gray-50 z-10" style={{ width: 180, minWidth: 180 }}>
+            <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 sticky left-0 bg-gray-50 z-10 w-[180px] min-w-[180px]">
               Player / Market
             </th>
             {visibleBooks.map((msId) => (
               <th
                 key={`book-${msId}`}
                 colSpan={2}
-                className="py-3 text-center text-xs font-semibold text-gray-700 border-l border-gray-200"
-                style={{ width: 136, minWidth: 136 }}
+                className="py-3 text-center text-xs font-semibold text-gray-700 border-l border-gray-200 w-[136px] min-w-[136px]"
               >
                 {getBookName(msId)}
               </th>
@@ -114,10 +113,10 @@ export function OddsTable({
             <th className="sticky left-0 bg-gray-50 z-10" />
             {visibleBooks.map((msId) => (
               <Fragment key={`labels-${msId}`}>
-                <th className="py-1.5 text-center text-xs font-medium text-gray-500 border-l border-gray-200" style={{ width: 68, minWidth: 68 }}>
+                <th className="py-1.5 text-center text-xs font-medium text-gray-500 border-l border-gray-200 w-[68px] min-w-[68px]">
                   OVER
                 </th>
-                <th className="py-1.5 text-center text-xs font-medium text-gray-500" style={{ width: 68, minWidth: 68 }}>
+                <th className="py-1.5 text-center text-xs font-medium text-gray-500 w-[68px] min-w-[68px]">
                   UNDER
                 </th>
               </Fragment>
@@ -131,7 +130,7 @@ export function OddsTable({
               className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}
             >
               {/* Player / Market info */}
-              <td className="px-4 py-2 text-sm font-medium text-gray-900 sticky left-0 bg-inherit z-10" style={{ width: 180, minWidth: 180 }}>
+              <td className="px-4 py-2 text-sm font-medium text-gray-900 sticky left-0 bg-inherit z-10 w-[180px] min-w-[180px]">
                 <div className="flex items-center gap-2 min-w-0">
                   {prop.player.headshotUrl && (
                     <img
@@ -158,7 +157,7 @@ export function OddsTable({
               {visibleBooks.map((msId) => (
                 <Fragment key={`odds-${prop.id}-${msId}`}>
                   {/* OVER */}
-                  <td className="p-1 border-l border-gray-200 align-middle" style={{ width: 68, minWidth: 68 }}>
+                  <td className="p-1 border-l border-gray-200 align-middle w-[68px] min-w-[68px]">
                     <OddsCell
                       odds={prop.overOdds.get(msId)}
                       bookName={getBookName(msId)}
@@ -167,7 +166,7 @@ export function OddsTable({
                     />
                   </td>
                   {/* UNDER */}
-                  <td className="p-1 align-middle" style={{ width: 68, minWidth: 68 }}>
+                  <td className="p-1 align-middle w-[68px] min-w-[68px]">
                     <OddsCell
                       odds={prop.underOdds.get(msId)}
                       bookName={getBookName(msId)}

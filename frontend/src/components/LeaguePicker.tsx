@@ -57,8 +57,9 @@ export function LeaguePicker({ onLeagueChange }: LeaguePickerProps) {
         <div className="flex items-center justify-between flex-wrap gap-4">
           {/* League selector */}
           <div className="flex items-center gap-3">
-            <label className="text-sm font-semibold text-gray-700">League:</label>
+            <label htmlFor="league-select" className="text-sm font-semibold text-gray-700">League:</label>
             <select
+              id="league-select"
               value={selectedLeague}
               onChange={(e) => handleLeagueChange(Number(e.target.value) as League)}
               className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"

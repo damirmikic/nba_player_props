@@ -98,6 +98,7 @@ function SelectAllCheckbox({
     <input
       ref={ref}
       type="checkbox"
+      aria-label="Select all"
       checked={allSelected}
       onChange={() => onChange(!allSelected)}
       className="w-4 h-4 rounded border-gray-300 cursor-pointer"
@@ -273,10 +274,11 @@ export function FilterSidebar({
 
       {/* Sort */}
       <div>
-        <label className="block text-sm font-semibold text-gray-900 mb-2">
+        <label htmlFor="sort-by-select" className="block text-sm font-semibold text-gray-900 mb-2">
           Sort By
         </label>
         <select
+          id="sort-by-select"
           value={sortBy}
           onChange={(e) =>
             onSortChange(
