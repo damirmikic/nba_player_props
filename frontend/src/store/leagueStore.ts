@@ -2,6 +2,8 @@ import { create } from 'zustand'
 import { League, LEAGUE_NAMES } from '@/types/index'
 import type { SuperbetBasketballLeague } from '@services/superbetFetcher'
 
+const UNABATED_LEAGUES: League[] = [League.NBA, League.WNBA, League.NCAA]
+
 interface LeagueState {
   selectedLeague: League
   availableLeagues: League[]
@@ -12,74 +14,30 @@ interface LeagueState {
   setSuperbetLeagues: (leagues: SuperbetBasketballLeague[]) => void
 }
 
-// Determine available leagues based on current season
-const getAvailableLeagues = (): League[] => {
-  const currentMonth = new Date().getMonth()
-  const isOffSeason = currentMonth >= 6 && currentMonth <= 8 // June-August off-season
-
-  return isOffSeason
-    ? [
-        League.WNBA, // WNBA summer league
-        League.EUROLIGA,
-        League.ABA,
-        League.EUROCUP,
-        League.ACB,
-        League.GREECE,
-        League.TURKEY,
-        League.ITALY,
-        League.FRANCE,
-        League.GERMANY,
-        League.NCAA,
-        League.VTB,
-        League.LITHUANIA,
-      ]
-    : [
-        League.NBA,
-        League.WNBA,
-        League.EUROLIGA,
-        League.ABA,
-        League.EUROCUP,
-        League.ACB,
-        League.GREECE,
-        League.TURKEY,
-        League.ITALY,
-        League.FRANCE,
-        League.GERMANY,
-        League.NCAA,
-        League.VTB,
-        League.LITHUANIA,
-      ]
-}
-
 export const useLeagueStore = create<LeagueState>((set) => ({
-  selectedLeague: getAvailableLeagues()[0], // Default to first available
-  availableLeagues: getAvailableLeagues(),
+  selectedLeague: League.NBA,
+  availableLeagues: UNABATED_LEAGUES,
   leagueLabels: {},
   superbetLeagues: [],
 
   setLeague: (league: League) => {
-    // Reset filters when changing league
     set({ selectedLeague: league })
   },
 
   setSuperbetLeagues: (leagues: SuperbetBasketballLeague[]) => {
     if (leagues.length === 0) return
 
-    const labels = Object.fromEntries(leagues.map((league) => [league.id, league.name]))
-    const merged = Array.from(new Set([...getAvailableLeagues(), ...leagues.map((league) => league.id)]))
+    const labels = Object.fromEntries(leagues.map((l) => [l.id, l.name]))
+    const superbetIds = leagues.map((l) => l.id as League)
 
     set((state) => ({
-      availableLeagues: merged,
-      leagueLabels: {
-        ...state.leagueLabels,
-        ...labels,
-      },
+      availableLeagues: [...UNABATED_LEAGUES, ...superbetIds],
+      leagueLabels: { ...state.leagueLabels, ...labels },
       superbetLeagues: leagues,
     }))
   },
 }))
 
-// Helper to get league display name
 export const getLeagueName = (league: League): string => {
   return LEAGUE_NAMES[league] || String(league)
 }

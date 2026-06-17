@@ -9,6 +9,7 @@ const UPCOMING_DAYS = 14;
 const KNOWN_TOURNAMENT_NAMES = {
   426: 'Turkey Super League',
   2174: 'WNBA',
+  2184: 'Turkey BSL',
   2187: 'ACB (Spain)',
   2200: 'Poland PLK',
   2205: 'Italy Serie A',
@@ -16,6 +17,7 @@ const KNOWN_TOURNAMENT_NAMES = {
   2419: 'Germany BBL',
   2423: 'France LNB Pro A',
   2448: 'Argentina Liga Nacional',
+  3713: 'PBA (Philippines)',
   29507: 'Uruguay Liga',
   30870: 'Puerto Rico BSN',
   38095: 'New Zealand NBL',
@@ -23,6 +25,39 @@ const KNOWN_TOURNAMENT_NAMES = {
   52234: 'Venezuela Superliga',
   60568: 'Dominican Republic LNB',
 };
+
+const SUPERBET_STRUCTURE_URL =
+  'https://production-superbet-offer-rs.freetls.fastly.net/sb-rs/api/subscription/v2/sr-Latn-RS/structure';
+
+async function fetchTournamentNames() {
+  try {
+    const response = await fetch(SUPERBET_STRUCTURE_URL, {
+      headers: {
+        accept: 'application/json',
+        origin: 'https://superbet.rs',
+        referer: 'https://superbet.rs/',
+      },
+      timeout: 6000,
+    });
+    if (!response.ok) return KNOWN_TOURNAMENT_NAMES;
+
+    const data = await response.json();
+    const names = { ...KNOWN_TOURNAMENT_NAMES };
+
+    const sports = data?.data?.sports ?? data?.sports ?? [];
+    for (const sport of sports) {
+      if (sport.id !== BASKETBALL_SPORT_ID) continue;
+      for (const category of sport.categories ?? sport.leagues ?? []) {
+        for (const tournament of category.tournaments ?? []) {
+          if (!names[tournament.id]) names[tournament.id] = tournament.name;
+        }
+      }
+    }
+    return names;
+  } catch {
+    return KNOWN_TOURNAMENT_NAMES;
+  }
+}
 
 function topOfHour(date) {
   const rounded = new Date(date);
@@ -87,7 +122,7 @@ function collectStreamSample(stream, maxWaitMs = 5000) {
   });
 }
 
-function deriveLeagues(events) {
+function deriveLeagues(events, nameMap = KNOWN_TOURNAMENT_NAMES) {
   const byTournament = new Map();
 
   for (const event of events) {
@@ -110,7 +145,7 @@ function deriveLeagues(events) {
     } else {
       byTournament.set(tournamentId, {
         id: tournamentId,
-        name: KNOWN_TOURNAMENT_NAMES[tournamentId] || `Tournament ${tournamentId}`,
+        name: nameMap[tournamentId] || `Tournament ${tournamentId}`,
         eventCount: 1,
         categoryIds: new Set(fixture.category_id ? [fixture.category_id] : []),
         nextEventTime: eventTime,
@@ -160,8 +195,11 @@ exports.handler = async function () {
       };
     }
 
-    const streamText = await collectStreamSample(response.body);
-    const leagues = deriveLeagues(parseSseData(streamText));
+    const [streamText, nameMap] = await Promise.all([
+      collectStreamSample(response.body),
+      fetchTournamentNames(),
+    ]);
+    const leagues = deriveLeagues(parseSseData(streamText), nameMap);
 
     return {
       statusCode: 200,

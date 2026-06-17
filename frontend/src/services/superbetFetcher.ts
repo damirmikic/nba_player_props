@@ -15,7 +15,7 @@ import type {
   Player,
   Team,
 } from '@/types/index'
-import { MARKET_LABELS, LEAGUE_DATA_SOURCES } from '@/types/index'
+import { MARKET_LABELS, LEAGUE_DATA_SOURCES, MarketType, SPORTSBOOKS } from '@/types/index'
 
 // Superbet API Configuration
 const SUPERBET_CONFIG = {
@@ -69,9 +69,11 @@ interface SuperbetRawPrematchEvent {
   event_id: number
   fixture?: {
     category_id?: number
+    category_name?: string
     event_name?: string
     sport_id?: number
     tournament_id?: number
+    tournament_name?: string
     utc_date?: string
   }
   markets?: Array<{
@@ -83,8 +85,18 @@ interface SuperbetRawPrematchEvent {
       status?: number
       display?: boolean
       metadata?: {
+        outcome_id?: number
         name?: string
         info?: string
+        market_line_uuid?: string
+        special_bet_value?: string
+        specifiers?: {
+          player?: string
+          total?: string
+          milestone?: string
+        }
+        offer_state_id?: number
+        tags?: string
       }
     }>
   }>
@@ -130,6 +142,7 @@ export class SuperbetFetcher {
   private static readonly KNOWN_TOURNAMENT_NAMES: Record<number, string> = {
     426: 'Turkey Super League',
     2174: 'WNBA',
+    2184: 'Turkey BSL',
     2187: 'ACB (Spain)',
     2200: 'Poland PLK',
     2205: 'Italy Serie A',
@@ -137,12 +150,47 @@ export class SuperbetFetcher {
     2419: 'Germany BBL',
     2423: 'France LNB Pro A',
     2448: 'Argentina Liga Nacional',
+    3713: 'PBA (Philippines)',
     29507: 'Uruguay Liga',
     30870: 'Puerto Rico BSN',
     38095: 'New Zealand NBL',
     47113: 'Israel National League',
     52234: 'Venezuela Superliga',
     60568: 'Dominican Republic LNB',
+  }
+
+  private static tournamentNameCache: Record<number, string> = {}
+
+  private static async fetchTournamentNames(): Promise<Record<number, string>> {
+    if (Object.keys(this.tournamentNameCache).length > 0) return this.tournamentNameCache
+
+    try {
+      const url = `${SUPERBET_CONFIG.offerBaseUrl}/subscription/v2/${SUPERBET_CONFIG.locale}/structure`
+      const response = await fetch(url, {
+        headers: { Accept: 'application/json' },
+        signal: AbortSignal.timeout(5000),
+      })
+      if (!response.ok) return this.KNOWN_TOURNAMENT_NAMES
+
+      const data = await response.json()
+      const names: Record<number, string> = { ...this.KNOWN_TOURNAMENT_NAMES }
+
+      // Structure: data.sports[] -> .categories[] -> .tournaments[]
+      const sports: unknown[] = data?.data?.sports ?? data?.sports ?? []
+      for (const sport of sports as Array<{ id: number; categories?: Array<{ tournaments?: Array<{ id: number; name: string }> }> }>) {
+        if (sport.id !== SUPERBET_CONFIG.basketballSportId) continue
+        for (const category of sport.categories ?? []) {
+          for (const tournament of category.tournaments ?? []) {
+            if (!names[tournament.id]) names[tournament.id] = tournament.name
+          }
+        }
+      }
+
+      this.tournamentNameCache = names
+      return names
+    } catch {
+      return this.KNOWN_TOURNAMENT_NAMES
+    }
   }
 
   private static topOfHour(date: Date): Date {
@@ -187,11 +235,17 @@ export class SuperbetFetcher {
   }
 
   private static async fetchPrematchSnapshot(url: string, maxWaitMs = 5000): Promise<string> {
-    const response = await fetch(url, {
-      headers: {
-        Accept: 'text/event-stream, application/json, text/plain, */*',
-      },
-    })
+    const controller = new AbortController()
+    const connectTimeout = window.setTimeout(() => controller.abort(), maxWaitMs + 3000)
+    let response: Response
+    try {
+      response = await fetch(url, {
+        headers: { Accept: 'text/event-stream, application/json, text/plain, */*' },
+        signal: controller.signal,
+      })
+    } finally {
+      window.clearTimeout(connectTimeout)
+    }
 
     if (!response.ok) {
       throw new Error(`Superbet responded with ${response.status}`)
@@ -228,7 +282,10 @@ export class SuperbetFetcher {
     }
   }
 
-  private static deriveLeagues(events: SuperbetRawPrematchEvent[]): SuperbetBasketballLeague[] {
+  private static deriveLeagues(
+    events: SuperbetRawPrematchEvent[],
+    nameMap: Record<number, string> = this.KNOWN_TOURNAMENT_NAMES
+  ): SuperbetBasketballLeague[] {
     const byTournament = new Map<number, {
       name: string
       eventCount: number
@@ -256,7 +313,7 @@ export class SuperbetFetcher {
         }
       } else {
         byTournament.set(tournamentId, {
-          name: this.KNOWN_TOURNAMENT_NAMES[tournamentId] || `Tournament ${tournamentId}`,
+          name: nameMap[tournamentId] || `Tournament ${tournamentId}`,
           eventCount: 1,
           categoryIds: new Set(fixture.category_id ? [fixture.category_id] : []),
           nextEventTime: eventTime,
@@ -349,8 +406,11 @@ export class SuperbetFetcher {
     }
 
     try {
-      const streamText = await this.fetchPrematchSnapshot(this.buildPrematchUrl(startDate, endDate))
-      return this.deriveLeagues(this.parseSseData<SuperbetRawPrematchEvent>(streamText))
+      const [streamText, nameMap] = await Promise.all([
+        this.fetchPrematchSnapshot(this.buildPrematchUrl(startDate, endDate)),
+        this.fetchTournamentNames(),
+      ])
+      return this.deriveLeagues(this.parseSseData<SuperbetRawPrematchEvent>(streamText), nameMap)
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       console.warn(`Superbet basketball leagues unavailable, using fallback list: ${message}`)
@@ -814,13 +874,188 @@ export class SuperbetFetcher {
   /**
    * Combined: Fetch and normalize
    */
+  private static buildEventsUrl(eventIds: number[]): string {
+    return `${SUPERBET_CONFIG.offerBaseUrl}/v3/subscription/${SUPERBET_CONFIG.locale}/events?events=${eventIds.join(',')}`
+  }
+
+  // Serbian: "Više od" = more than (over), "Manje od" = less than (under)
+  private static propSide(name: string): 'over' | 'under' | null {
+    const lower = name.toLowerCase()
+    if (lower.includes('više od')) return 'over'
+    if (lower.includes('manje od')) return 'under'
+    return null
+  }
+
+  // Market ID → MarketType for the "Ukupno" (over/under) player prop markets
+  private static readonly PROP_MARKET_MAP: Record<number, MarketType> = {
+    239934: MarketType.POINTS,
+    239935: MarketType.ASSISTS,
+    239936: MarketType.REBOUNDS,
+    239937: MarketType.POINTS_ASSISTS,
+    239938: MarketType.POINTS_REBOUNDS,
+    239939: MarketType.REBOUNDS_ASSISTS,
+    239940: MarketType.POINTS_REBOUNDS_ASSISTS,
+  }
+
+  private static hashCode(str: string): number {
+    let hash = 0
+    for (let i = 0; i < str.length; i++) {
+      hash = (Math.imul(31, hash) + str.charCodeAt(i)) | 0
+    }
+    return Math.abs(hash)
+  }
+
+  private static normalizeRawEvents(
+    events: SuperbetRawPrematchEvent[],
+    league: League
+  ): NormalizedProp[] {
+    const propsMap = new Map<string, NormalizedProp>()
+    const BOOK_ID = SPORTSBOOKS.SUPERBET
+
+    for (const event of events) {
+      const fixture = event.fixture
+      if (!fixture || !event.markets) continue
+
+      const teams = this.splitEventName(fixture.event_name)
+      const gameTime = new Date(fixture.utc_date ?? Date.now())
+
+      for (const market of event.markets) {
+        const marketType = this.PROP_MARKET_MAP[market.id ?? 0]
+        if (!marketType || !market.odds) continue
+
+        for (const odd of market.odds) {
+          if (!odd.price || !odd.display || odd.status !== 1) continue
+          const meta = odd.metadata
+          const playerName = meta?.specifiers?.player
+          const totalStr = meta?.specifiers?.total
+          if (!playerName || !totalStr) continue
+
+          const line = parseFloat(totalStr)
+          if (isNaN(line)) continue
+
+          const side = this.propSide(meta.name ?? meta.info ?? '')
+          if (!side) continue
+          const isOver = side === 'over'
+
+          const propKey = `${event.event_id}_${market.id}_${playerName}_${line}`
+          let prop = propsMap.get(propKey)
+
+          if (!prop) {
+            const nameParts = playerName.split(' ')
+            prop = {
+              id: propKey,
+              eventId: event.event_id,
+              gameTime,
+              league,
+              dataSource: 'Superbet',
+              player: {
+                id: this.hashCode(playerName),
+                firstName: nameParts[0],
+                lastName: nameParts.slice(1).join(' '),
+                position: 'F',
+                jerseyNumber: '0',
+                height: 0,
+                weight: 0,
+                birthDate: '',
+                country: '',
+                draftYear: 0,
+                statusId: 1,
+                headshotUrl: '',
+                leagueId: league,
+              },
+              playerTeam: { id: 0, name: teams.homeTeam, abbreviation: '', logoUrl: '', leagueId: league, sideId: 0 },
+              opposingTeam: { id: 1, name: teams.awayTeam, abbreviation: '', logoUrl: '', leagueId: league, sideId: 1 },
+              marketType,
+              marketLabel: MARKET_LABELS[marketType] ?? String(marketType),
+              overLine: null,
+              underLine: null,
+              overOdds: new Map(),
+              underOdds: new Map(),
+              bestOverPrice: -Infinity,
+              bestOverBook: -1,
+              bestUnderPrice: -Infinity,
+              bestUnderBook: -1,
+              unabatedLine: null,
+              unabatedOverEV: null,
+              unabatedUnderEV: null,
+              lastUpdated: new Date(),
+              isActive: true,
+            }
+            propsMap.set(propKey, prop)
+          }
+
+          const americanPrice = this.decimalToAmerican(odd.price)
+          const oddsEntry: SideSportsbookOdds = {
+            marketLineId: meta.outcome_id ?? 0,
+            modifiedOn: new Date().toISOString(),
+            isBlurred: false,
+            marketId: market.id ?? 0,
+            points: line,
+            price: americanPrice,
+            americanPrice,
+            sourcePrice: odd.price,
+            sourceFormat: 2,
+            statusId: 1,
+            sequenceNumber: 0,
+            bacr: null,
+            ge: null,
+          }
+
+          if (isOver) {
+            prop.overLine = line
+            prop.overOdds.set(BOOK_ID, oddsEntry)
+            if (americanPrice > prop.bestOverPrice) {
+              prop.bestOverPrice = americanPrice
+              prop.bestOverBook = BOOK_ID
+            }
+          } else {
+            prop.underLine = line
+            prop.underOdds.set(BOOK_ID, oddsEntry)
+            if (americanPrice > prop.bestUnderPrice) {
+              prop.bestUnderPrice = americanPrice
+              prop.bestUnderBook = BOOK_ID
+            }
+          }
+        }
+      }
+    }
+
+    return Array.from(propsMap.values()).filter(
+      (p) => p.overOdds.size > 0 || p.underOdds.size > 0
+    )
+  }
+
+  private static async fetchEventPropsViaProxy(
+    eventIds: number[]
+  ): Promise<SuperbetRawPrematchEvent[]> {
+    try {
+      const resp = await axios.get<{ events: SuperbetRawPrematchEvent[] }>(
+        '/.netlify/functions/superbet-basketball-props',
+        { params: { eventIds: eventIds.join(',') }, timeout: 12000 }
+      )
+      if (Array.isArray(resp.data?.events)) return resp.data.events
+    } catch {
+      // Proxy unavailable (local dev without netlify dev) — fall through
+    }
+
+    // Direct browser fallback (local dev only)
+    const eventsText = await this.fetchPrematchSnapshot(this.buildEventsUrl(eventIds), 6000)
+    return this.parseSseData<SuperbetRawPrematchEvent>(eventsText)
+  }
+
   static async fetchAndNormalize(
     league: League,
-    playerLookup: Map<string, Player>,
-    teamLookup: Map<string, Team>
+    _playerLookup: Map<string, Player>,
+    _teamLookup: Map<string, Team>,
+    preloadedEvents?: SuperbetBasketballEvent[]
   ): Promise<NormalizedProp[]> {
-    const rawData = await this.fetchPrematchOdds(league)
-    return this.normalizeOdds(rawData, league, playerLookup, teamLookup)
+    const leagueEvents = preloadedEvents ?? await this.fetchBasketballEvents(league)
+    if (leagueEvents.length === 0) return []
+
+    const eventIds = leagueEvents.map((e) => e.id)
+    const fullEvents = await this.fetchEventPropsViaProxy(eventIds)
+
+    return this.normalizeRawEvents(fullEvents, league)
   }
 }
 
