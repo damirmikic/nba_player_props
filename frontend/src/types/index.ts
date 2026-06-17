@@ -124,29 +124,6 @@ export const SPORTSBOOKS = {
   X1BET: 210,
 } as const;
 
-// League → Data Sources mapping (Unabated leagues only; Superbet leagues are discovered dynamically)
-export const LEAGUE_DATA_SOURCES: Partial<Record<League, {
-  primary: string;
-  books: (typeof SPORTSBOOKS)[keyof typeof SPORTSBOOKS][];
-  apiEndpoint?: string;
-}>> = {
-  [League.NBA]: {
-    primary: 'Unabated',
-    books: [SPORTSBOOKS.DRAFTKINGS, SPORTSBOOKS.FANDUEL, SPORTSBOOKS.BETMGM, SPORTSBOOKS.CAESARS, SPORTSBOOKS.BETRIVERS],
-    apiEndpoint: 'https://content.unabated.com/markets/v2/league/1/propodds.json',
-  },
-  [League.WNBA]: {
-    primary: 'Unabated',
-    books: [SPORTSBOOKS.DRAFTKINGS, SPORTSBOOKS.FANDUEL, SPORTSBOOKS.BETMGM, SPORTSBOOKS.CAESARS, SPORTSBOOKS.BETRIVERS],
-    apiEndpoint: 'https://content.unabated.com/markets/v2/league/7/propodds.json',
-  },
-  [League.NCAA]: {
-    primary: 'Unabated',
-    books: [SPORTSBOOKS.DRAFTKINGS, SPORTSBOOKS.FANDUEL],
-    apiEndpoint: 'https://content.unabated.com/markets/v2/league/109/propodds.json',
-  },
-};
-
 // ============================================================================
 // MARKET TYPES (betTypeId)
 // ============================================================================
@@ -292,10 +269,7 @@ export interface PropMarket {
 // ============================================================================
 
 export interface UnabatedApiResponse {
-  odds: {
-    "lg7:pt1:pregame": PropMarket[];
-    // Add other period/state combos as needed (live, final, etc.)
-  };
+  odds: Record<string, PropMarket[]>;
   people: PlayerLookup;
   teams: TeamLookup;
   marketSources: Sportsbook[];

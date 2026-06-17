@@ -4,7 +4,7 @@ const SUPERBET_PREMATCH_URL =
   'https://production-superbet-offer-rs.freetls.fastly.net/sb-rs/api/v3/subscription/sr-Latn-RS/prematch';
 
 const BASKETBALL_SPORT_ID = 4;
-const UPCOMING_DAYS = 14;
+const UPCOMING_DAYS = 3;
 
 function topOfHour(date) {
   const rounded = new Date(date);
@@ -77,6 +77,18 @@ function splitEventName(eventName) {
   };
 }
 
+function getReportedMarketCount(event) {
+  const metadataCount = event.inplay_stats_metadata && event.inplay_stats_metadata.market_count;
+  const activeCount =
+    event.inplay_stats_metadata &&
+    event.inplay_stats_metadata.counts &&
+    event.inplay_stats_metadata.counts.markets &&
+    event.inplay_stats_metadata.counts.markets['1'];
+  const streamedCount = Array.isArray(event.markets) ? event.markets.length : 0;
+
+  return Math.max(metadataCount || 0, activeCount || 0, streamedCount);
+}
+
 function deriveEvents(rawEvents, leagueId) {
   const byEventId = new Map();
 
@@ -95,7 +107,7 @@ function deriveEvents(rawEvents, leagueId) {
     if (!teams.homeTeam && !teams.awayTeam) continue;
 
     const existing = byEventId.get(event.event_id);
-    const marketCount = Array.isArray(event.markets) ? event.markets.length : 0;
+    const marketCount = getReportedMarketCount(event);
 
     if (existing) {
       existing.marketCount = Math.max(existing.marketCount, marketCount);
@@ -108,6 +120,7 @@ function deriveEvents(rawEvents, leagueId) {
         awayTeam: teams.awayTeam,
         startTime: fixture.utc_date,
         marketCount,
+        rawEvent: event,
       });
     }
   }

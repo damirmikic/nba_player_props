@@ -3,6 +3,12 @@ const fetch = require('node-fetch');
 const SUPERBET_EVENTS_BASE =
   'https://production-superbet-offer-rs.freetls.fastly.net/sb-rs/api/v3/subscription/sr-Latn-RS/events';
 
+const PLAYER_PROP_MARKET_IDS = [239934, 239935, 239936, 239937, 239938, 239939, 239940];
+
+function hasPlayerPropMarket(payload) {
+  return PLAYER_PROP_MARKET_IDS.some((id) => payload.includes(`"id":${id}`));
+}
+
 function parseSseData(payload) {
   const items = [];
   for (const line of payload.split(/\r?\n/)) {
@@ -21,7 +27,7 @@ function parseSseData(payload) {
   return items;
 }
 
-function collectStreamSample(stream, maxWaitMs = 6000) {
+function collectStreamSample(stream, maxWaitMs = 25000) {
   return new Promise((resolve, reject) => {
     let body = '';
     let settled = false;
@@ -35,7 +41,13 @@ function collectStreamSample(stream, maxWaitMs = 6000) {
 
     const timer = setTimeout(finish, maxWaitMs);
 
-    stream.on('data', (chunk) => { body += chunk.toString('utf8'); });
+    stream.on('data', (chunk) => {
+      body += chunk.toString('utf8');
+      if (hasPlayerPropMarket(body)) {
+        clearTimeout(timer);
+        finish();
+      }
+    });
     stream.on('end', () => { clearTimeout(timer); finish(); });
     stream.on('error', (err) => {
       clearTimeout(timer);
@@ -75,7 +87,7 @@ exports.handler = async function (event) {
         origin: 'https://superbet.rs',
         referer: 'https://superbet.rs/',
       },
-      timeout: 10000,
+        timeout: 30000,
     });
 
     if (!response.ok) {

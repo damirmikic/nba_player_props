@@ -4,7 +4,7 @@ const SUPERBET_PREMATCH_URL =
   'https://production-superbet-offer-rs.freetls.fastly.net/sb-rs/api/v3/subscription/sr-Latn-RS/prematch';
 
 const BASKETBALL_SPORT_ID = 4;
-const UPCOMING_DAYS = 14;
+const UPCOMING_DAYS = 3;
 
 const KNOWN_TOURNAMENT_NAMES = {
   426: 'Turkey Super League',

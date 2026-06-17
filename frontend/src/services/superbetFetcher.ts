@@ -15,7 +15,8 @@ import type {
   Player,
   Team,
 } from '@/types/index'
-import { MARKET_LABELS, LEAGUE_DATA_SOURCES, MarketType, SPORTSBOOKS } from '@/types/index'
+import { MARKET_LABELS, MarketType, SPORTSBOOKS } from '@/types/index'
+import { getLeagueFeedConfig } from '@/config/feedConfig'
 
 // Superbet API Configuration
 const SUPERBET_CONFIG = {
@@ -25,8 +26,10 @@ const SUPERBET_CONFIG = {
   soccerSportId: 5,
   basketballSportId: 4,
   tennisSportId: 2,
-  upcomingDays: 14,
+  upcomingDays: 3,
 }
+
+const MIN_PLAYER_PROP_MARKET_COUNT = 50
 
 /**
  * Sports ID mapping for Superbet
@@ -65,7 +68,40 @@ interface SuperbetPrematchResponse {
   timestamp: string
 }
 
-interface SuperbetRawPrematchEvent {
+interface SuperbetRawOdd {
+  uuid?: string
+  price?: number
+  status?: number
+  display?: boolean
+  metadata?: {
+    outcome_id?: number
+    name?: string
+    code?: string
+    info?: string
+    market_line_uuid?: string
+    special_bet_value?: string
+    specifiers?: {
+      player?: string
+      player1?: string
+      player2?: string
+      total?: string
+      milestone?: string
+      points?: string
+      rebounds?: string
+      assists?: string
+    }
+    offer_state_id?: number
+    tags?: string
+  }
+}
+
+interface SuperbetRawMarket {
+  id?: number
+  name?: string
+  odds?: SuperbetRawOdd[]
+}
+
+export interface SuperbetRawPrematchEvent {
   event_id: number
   fixture?: {
     category_id?: number
@@ -76,30 +112,15 @@ interface SuperbetRawPrematchEvent {
     tournament_name?: string
     utc_date?: string
   }
-  markets?: Array<{
-    id?: number
-    name?: string
-    odds?: Array<{
-      uuid?: string
-      price?: number
-      status?: number
-      display?: boolean
-      metadata?: {
-        outcome_id?: number
-        name?: string
-        info?: string
-        market_line_uuid?: string
-        special_bet_value?: string
-        specifiers?: {
-          player?: string
-          total?: string
-          milestone?: string
-        }
-        offer_state_id?: number
-        tags?: string
-      }
-    }>
-  }>
+  inplay_stats_metadata?: {
+    market_count?: number
+    counts?: {
+      markets?: Record<string, number>
+      odds?: Record<string, number>
+    }
+  }
+  markets?: SuperbetRawMarket[]
+  priceboosts?: SuperbetRawMarket[]
 }
 
 export interface SuperbetBasketballLeague {
@@ -118,6 +139,7 @@ export interface SuperbetBasketballEvent {
   awayTeam: string
   startTime: string
   marketCount: number
+  rawEvent?: SuperbetRawPrematchEvent
 }
 
 interface SuperbetStructure {
@@ -337,12 +359,20 @@ export class SuperbetFetcher {
   }
 
   private static splitEventName(eventName: string | undefined): { homeTeam: string; awayTeam: string } {
-    const [homeTeam = '', awayTeam = ''] = (eventName || '').split('·')
+    const [homeTeam = '', awayTeam = ''] = (eventName || '').split(/\u00c2?\u00b7/)
 
     return {
       homeTeam: homeTeam.trim(),
       awayTeam: awayTeam.trim(),
     }
+  }
+
+  private static getReportedMarketCount(event: SuperbetRawPrematchEvent): number {
+    const metadataCount = event.inplay_stats_metadata?.market_count
+    const activeCount = event.inplay_stats_metadata?.counts?.markets?.['1']
+    const streamedCount = event.markets?.length ?? 0
+
+    return Math.max(metadataCount ?? 0, activeCount ?? 0, streamedCount)
   }
 
   private static deriveEvents(
@@ -366,10 +396,13 @@ export class SuperbetFetcher {
       if (!teams.homeTeam && !teams.awayTeam) continue
 
       const existing = byEventId.get(event.event_id)
-      const marketCount = event.markets?.length || 0
+      const marketCount = this.getReportedMarketCount(event)
 
       if (existing) {
         existing.marketCount = Math.max(existing.marketCount, marketCount)
+        if ((event.markets?.length ?? 0) > (existing.rawEvent?.markets?.length ?? 0)) {
+          existing.rawEvent = event
+        }
       } else {
         byEventId.set(event.event_id, {
           id: event.event_id,
@@ -379,6 +412,7 @@ export class SuperbetFetcher {
           awayTeam: teams.awayTeam,
           startTime: fixture.utc_date,
           marketCount,
+          rawEvent: event,
         })
       }
     }
@@ -472,17 +506,17 @@ export class SuperbetFetcher {
       }
 
       const endpoint = this.buildPrematchUrl(startDate, endDate)
-      console.log('📡 Superbet Prematch API Request:', { endpoint, params })
+      console.log('Superbet Prematch API Request:', { endpoint, params })
 
       const response = await axios.get<SuperbetPrematchResponse>(endpoint, {
         timeout: 10000,
       })
 
-      console.log('✅ Superbet Prematch Response:', response.data)
+      console.log('Superbet Prematch Response:', response.data)
       return response.data
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
-      console.error('❌ Superbet Prematch Error:', message)
+      console.error('Superbet Prematch Error:', message)
       throw new Error(`Failed to fetch Superbet prematch odds: ${message}`)
     }
   }
@@ -497,17 +531,17 @@ export class SuperbetFetcher {
       }
 
       const endpoint = `${SUPERBET_CONFIG.offerBaseUrl}/subscription/v2/${SUPERBET_CONFIG.locale}/structure`
-      console.log('📡 Superbet Structure API Request:', { endpoint })
+      console.log('Superbet Structure API Request:', { endpoint })
 
       const response = await axios.get<SuperbetStructure>(endpoint, {
         timeout: 10000,
       })
 
-      console.log('✅ Superbet Structure Response:', response.data)
+      console.log('Superbet Structure Response:', response.data)
       return response.data
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
-      console.error('❌ Superbet Structure Error:', message)
+      console.error('Superbet Structure Error:', message)
       throw new Error(`Failed to fetch Superbet structure: ${message}`)
     }
   }
@@ -529,7 +563,7 @@ export class SuperbetFetcher {
         name: 'Euroliga',
         matchups: [
           ['Barcelona', 'Real Madrid'],
-          ['CSKA Moscow', 'Fenerbahçe'],
+          ['CSKA Moscow', 'Fenerbahce'],
           ['Olympiacos', 'Anadolu Efes'],
         ],
       },
@@ -538,7 +572,7 @@ export class SuperbetFetcher {
         matchups: [
           ['Partizan', 'Crvena Zvezda'],
           ['Cedevita Zagreb', 'Split'],
-          ['Budućnost', 'Mega'],
+          ['Buducnost', 'Mega'],
         ],
       },
       [102]: {
@@ -596,7 +630,7 @@ export class SuperbetFetcher {
       })
     })
 
-    console.log(`📊 Mock data generated for ${leagueInfo.name}: ${mockEvents.length} games`)
+    console.log(`Mock data generated for ${leagueInfo.name}: ${mockEvents.length} games`)
     return {
       events: mockEvents,
       timestamp: new Date().toISOString(),
@@ -645,12 +679,12 @@ export class SuperbetFetcher {
     _teamLookup: Map<string, Team>
   ): NormalizedProp[] {
     const propsMap = new Map<string, NormalizedProp>()
-    const dataSource = LEAGUE_DATA_SOURCES[league]?.primary || 'Superbet'
+    const dataSource = getLeagueFeedConfig(league).primarySource
 
     for (const event of rawData.events) {
       for (const market of event.markets) {
         // Parse player name and market type from outcome names
-        // E.g., "Nikola Mirotic Over 17.5 Points" → player, line, market type
+        // E.g., "Nikola Mirotic Over 17.5 Points" -> player, line, market type
 
         for (const outcome of market.outcomes) {
           const parsed = this.parseOutcomeName(outcome.name)
@@ -781,7 +815,7 @@ export class SuperbetFetcher {
 
   /**
    * Parse outcome name to extract player, line, side, market type
-   * E.g., "Nikola Mirotic Over 17.5 Points" → { playerName, line, side, marketType }
+   * E.g., "Nikola Mirotic Over 17.5 Points" -> { playerName, line, side, marketType }
    */
   private static parseOutcomeName(
     name: string
@@ -830,7 +864,7 @@ export class SuperbetFetcher {
 
   /**
    * Convert decimal odds to American odds
-   * Decimal 1.85 → American -120
+   * Decimal 1.85 -> American -120
    */
   private static decimalToAmerican(decimal: number): number {
     if (decimal === 0) return -110
@@ -850,23 +884,23 @@ export class SuperbetFetcher {
   static async fetchPlayerStats(sport: number = SUPERBET_CONFIG.basketballSportId): Promise<any> {
     try {
       if (this.MOCK_ENABLED) {
-        console.log('📊 Mock stats mode enabled')
+        console.log('Mock stats mode enabled')
         return { mock: true }
       }
 
       const endpoint = `${SUPERBET_CONFIG.statsUrl}/api/stats`
-      console.log('📡 Superbet Stats API Request:', { endpoint, sport })
+      console.log('Superbet Stats API Request:', { endpoint, sport })
 
       const response = await axios.get(endpoint, {
         params: { sport, variant: 'rssuperbetsport' },
         timeout: 10000,
       })
 
-      console.log('✅ Superbet Stats Response:', response.data)
+      console.log('Superbet Stats Response:', response.data)
       return response.data
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
-      console.warn('⚠️ Superbet Stats Error (non-blocking):', message)
+      console.warn('Superbet Stats Error (non-blocking):', message)
       return null
     }
   }
@@ -878,15 +912,63 @@ export class SuperbetFetcher {
     return `${SUPERBET_CONFIG.offerBaseUrl}/v3/subscription/${SUPERBET_CONFIG.locale}/events?events=${eventIds.join(',')}`
   }
 
-  // Serbian: "Više od" = more than (over), "Manje od" = less than (under)
-  private static propSide(name: string): 'over' | 'under' | null {
+  private static isNormalizablePropOdd(market: SuperbetRawMarket, odd: SuperbetRawOdd): boolean {
+    const meta = odd.metadata
+    const specs = meta?.specifiers
+    if (!this.isDisplayedActiveOdd(odd)) return false
+    if (!this.PROP_MARKET_MAP[market.id ?? 0]) return false
+    if (!specs?.player || !specs.total) return false
+
+    const marketType = this.PROP_MARKET_MAP[market.id ?? 0]
+    if (!marketType) return false
+
+    const side = this.propSide(`${meta?.name ?? ''} ${meta?.info ?? ''}`, meta?.code)
+
+    return Boolean(side)
+  }
+
+  private static hasNormalizablePropOdds(events: SuperbetRawPrematchEvent[]): boolean {
+    return events.some((event) =>
+      (event.markets ?? []).some((market) =>
+        market.odds?.some((odd) => this.isNormalizablePropOdd(market, odd))
+      )
+    )
+  }
+
+  private static likelyHasPlayerProps(event: SuperbetBasketballEvent): boolean {
+    if (event.rawEvent && this.hasNormalizablePropOdds([event.rawEvent])) return true
+    return event.marketCount >= MIN_PLAYER_PROP_MARKET_COUNT
+  }
+
+  private static isDisplayedActiveOdd(odd: SuperbetRawOdd): boolean {
+    if (!odd.price) return false
+    if (odd.display === false) return false
+    if (odd.status !== undefined && odd.status !== 1) return false
+    return true
+  }
+
+  private static propSide(name: string, code?: string): 'over' | 'under' | null {
+    if (code === '+') return 'over'
+    if (code === '-') return 'under'
+
     const lower = name.toLowerCase()
-    if (lower.includes('više od')) return 'over'
-    if (lower.includes('manje od')) return 'under'
+    if (
+      lower.includes('vi\u0161e od') ||
+      lower.includes('vise od') ||
+      lower.includes('vi\u0139\u02c7e od') ||
+      lower.includes('vi\u013a\u02c7e od') ||
+      lower.includes('vi\u0161e') ||
+      lower.includes('vi\u0139\u02c7e') ||
+      lower.includes('vi\u013a\u02c7e') ||
+      lower.includes('vise')
+    ) {
+      return 'over'
+    }
+    if (lower.includes('manje od') || lower.includes('manje')) return 'under'
     return null
   }
 
-  // Market ID → MarketType for the "Ukupno" (over/under) player prop markets
+  // Market ID to MarketType for supported over/under player prop markets.
   private static readonly PROP_MARKET_MAP: Record<number, MarketType> = {
     239934: MarketType.POINTS,
     239935: MarketType.ASSISTS,
@@ -914,28 +996,32 @@ export class SuperbetFetcher {
 
     for (const event of events) {
       const fixture = event.fixture
-      if (!fixture || !event.markets) continue
+      if (!fixture) continue
 
       const teams = this.splitEventName(fixture.event_name)
       const gameTime = new Date(fixture.utc_date ?? Date.now())
 
-      for (const market of event.markets) {
-        const marketType = this.PROP_MARKET_MAP[market.id ?? 0]
-        if (!marketType || !market.odds) continue
+      for (const market of event.markets ?? []) {
+        if (!market.odds) continue
 
         for (const odd of market.odds) {
-          if (!odd.price || !odd.display || odd.status !== 1) continue
+          if (!this.isDisplayedActiveOdd(odd)) continue
           const meta = odd.metadata
           const playerName = meta?.specifiers?.player
           const totalStr = meta?.specifiers?.total
           if (!playerName || !totalStr) continue
 
+          const marketType = this.PROP_MARKET_MAP[market.id ?? 0]
+          if (!marketType) continue
+
           const line = parseFloat(totalStr)
           if (isNaN(line)) continue
 
-          const side = this.propSide(meta.name ?? meta.info ?? '')
+          const side = this.propSide(`${meta.name ?? ''} ${meta.info ?? ''}`, meta.code)
           if (!side) continue
           const isOver = side === 'over'
+          const decimalPrice = odd.price
+          if (decimalPrice === undefined) continue
 
           const propKey = `${event.event_id}_${market.id}_${playerName}_${line}`
           let prop = propsMap.get(propKey)
@@ -984,7 +1070,7 @@ export class SuperbetFetcher {
             propsMap.set(propKey, prop)
           }
 
-          const americanPrice = this.decimalToAmerican(odd.price)
+          const americanPrice = this.decimalToAmerican(decimalPrice)
           const oddsEntry: SideSportsbookOdds = {
             marketLineId: meta.outcome_id ?? 0,
             modifiedOn: new Date().toISOString(),
@@ -993,7 +1079,7 @@ export class SuperbetFetcher {
             points: line,
             price: americanPrice,
             americanPrice,
-            sourcePrice: odd.price,
+            sourcePrice: decimalPrice,
             sourceFormat: 2,
             statusId: 1,
             sequenceNumber: 0,
@@ -1025,22 +1111,46 @@ export class SuperbetFetcher {
     )
   }
 
-  private static async fetchEventPropsViaProxy(
-    eventIds: number[]
+  private static async fetchSingleEventProps(
+    eventId: number
   ): Promise<SuperbetRawPrematchEvent[]> {
     try {
       const resp = await axios.get<{ events: SuperbetRawPrematchEvent[] }>(
         '/.netlify/functions/superbet-basketball-props',
-        { params: { eventIds: eventIds.join(',') }, timeout: 12000 }
+        { params: { eventIds: String(eventId) }, timeout: 30000 }
       )
-      if (Array.isArray(resp.data?.events)) return resp.data.events
+      if (
+        Array.isArray(resp.data?.events) &&
+        this.hasNormalizablePropOdds(resp.data.events)
+      ) {
+        return resp.data.events
+      }
+      console.warn(`Superbet event ${eventId} response did not include standard player O/U props yet`)
     } catch {
-      // Proxy unavailable (local dev without netlify dev) — fall through
+      // Proxy unavailable (local dev without netlify dev) - fall through
     }
 
-    // Direct browser fallback (local dev only)
-    const eventsText = await this.fetchPrematchSnapshot(this.buildEventsUrl(eventIds), 6000)
-    return this.parseSseData<SuperbetRawPrematchEvent>(eventsText)
+    // Direct browser fallback (local dev only). Superbet often emits partial
+    // price/status updates before the full market metadata, so retry with
+    // progressively longer snapshots until we see standard player O/U props.
+    let latestEvents: SuperbetRawPrematchEvent[] = []
+    for (const waitMs of [12000, 20000, 30000]) {
+      const eventsText = await this.fetchPrematchSnapshot(this.buildEventsUrl([eventId]), waitMs)
+      const events = this.parseSseData<SuperbetRawPrematchEvent>(eventsText)
+      if (events.length > 0) latestEvents = events
+      if (this.hasNormalizablePropOdds(events)) return events
+    }
+
+    return latestEvents
+  }
+
+  private static async fetchEventPropsViaProxy(
+    eventIds: number[]
+  ): Promise<SuperbetRawPrematchEvent[]> {
+    const eventResults = await Promise.all(
+      eventIds.map((eventId) => this.fetchSingleEventProps(eventId))
+    )
+    return eventResults.flat()
   }
 
   static async fetchAndNormalize(
@@ -1052,10 +1162,31 @@ export class SuperbetFetcher {
     const leagueEvents = preloadedEvents ?? await this.fetchBasketballEvents(league)
     if (leagueEvents.length === 0) return []
 
-    const eventIds = leagueEvents.map((e) => e.id)
+    const preloadedRawEvents = leagueEvents
+      .map((event) => event.rawEvent)
+      .filter((event): event is SuperbetRawPrematchEvent => Boolean(event))
+
+    const normalizedFromPrematch = this.normalizeRawEvents(
+      preloadedRawEvents.filter((event) => this.hasNormalizablePropOdds([event])),
+      league
+    )
+
+    const eventIdsWithPrematchProps = new Set(
+      normalizedFromPrematch.map((prop) => prop.eventId)
+    )
+    const eventIds = leagueEvents
+      .filter((event) => !eventIdsWithPrematchProps.has(event.id))
+      .filter((event) => this.likelyHasPlayerProps(event))
+      .map((e) => e.id)
+
+    if (eventIds.length === 0) return normalizedFromPrematch
+
     const fullEvents = await this.fetchEventPropsViaProxy(eventIds)
 
-    return this.normalizeRawEvents(fullEvents, league)
+    return [
+      ...normalizedFromPrematch,
+      ...this.normalizeRawEvents(fullEvents, league),
+    ]
   }
 }
 

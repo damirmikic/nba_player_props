@@ -5,7 +5,8 @@ import type {
   SideSportsbookOdds,
   League,
 } from '@/types/index'
-import { MARKET_LABELS, LEAGUE_DATA_SOURCES } from '@/types/index'
+import { MARKET_LABELS } from '@/types/index'
+import { getLeagueFeedConfig } from '@/config/feedConfig'
 
 export class OddsFetcher {
   /**
@@ -13,12 +14,12 @@ export class OddsFetcher {
    */
   static async fetchRawOdds(league: League = 7): Promise<UnabatedApiResponse> {
     try {
-      const source = LEAGUE_DATA_SOURCES[league]
-      if (!source?.apiEndpoint) {
+      const feedConfig = getLeagueFeedConfig(league)
+      if (!feedConfig.apiEndpoint) {
         throw new Error(`No Unabated endpoint configured for league: ${league}`)
       }
 
-      const response = await axios.get<UnabatedApiResponse>(source.apiEndpoint, {
+      const response = await axios.get<UnabatedApiResponse>(feedConfig.apiEndpoint, {
         params: {
           v: Math.random(), // Cache busting
         },
@@ -43,8 +44,11 @@ export class OddsFetcher {
    */
   static normalizeOdds(rawData: UnabatedApiResponse, league: League = 7): NormalizedProp[] {
     const propsMap = new Map<string, NormalizedProp>()
+    const rawProps = Object.entries(rawData.odds)
+      .filter(([key, props]) => key.startsWith(`lg${league}:`) && Array.isArray(props))
+      .flatMap(([, props]) => props)
 
-    for (const rawProp of rawData.odds['lg7:pt1:pregame']) {
+    for (const rawProp of rawProps) {
       const uniqueKey = `${rawProp.eventId}_${rawProp.betTypeId}_${rawProp.personId}`
 
       let prop = propsMap.get(uniqueKey)
@@ -57,12 +61,7 @@ export class OddsFetcher {
           .map((t) => t.id)
           .find((id) => id !== rawProp.teamId)
 
-        if (!player || !playerTeam || !opposingTeamId) {
-          console.warn(
-            `Skipping prop: missing data for player ${rawProp.personId} in event ${rawProp.eventId}`
-          )
-          continue
-        }
+        if (!player || !playerTeam || !opposingTeamId) continue
 
         const opposingTeam = rawData.teams[opposingTeamId]
         if (!opposingTeam) continue

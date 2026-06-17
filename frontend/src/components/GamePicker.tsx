@@ -1,9 +1,9 @@
 import type { NormalizedProp } from '@/types/index'
-import type { SuperbetBasketballEvent } from '@services/superbetFetcher'
+import type { SourceEvent } from '@services/sources'
 
 interface GamePickerProps {
   props: NormalizedProp[]
-  games?: SuperbetBasketballEvent[]
+  games?: SourceEvent[]
   isLoading?: boolean
   selectedGameIds: number[]
   onGameSelect: (gameIds: number[]) => void

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { League, LEAGUE_DATA_SOURCES } from '@/types/index'
+import { League } from '@/types/index'
+import { getLeagueFeedConfig } from '@/config/feedConfig'
 import { useLeagueStore, getLeagueName } from '@store/leagueStore'
 import { SuperbetFetcher } from '@services/superbetFetcher'
 
@@ -43,10 +44,11 @@ export function LeaguePicker({ onLeagueChange }: LeaguePickerProps) {
     onLeagueChange?.(league)
   }
 
-  const currentSource = LEAGUE_DATA_SOURCES[selectedLeague]
+  const currentFeedConfig = getLeagueFeedConfig(selectedLeague)
   const selectedSuperbetLeague = superbetLeagues.find((league) => league.id === selectedLeague)
-  const currentSourceName = currentSource?.primary || (selectedSuperbetLeague ? 'Superbet' : 'Unknown')
-  const currentBookCount = currentSource?.books.length || (selectedSuperbetLeague ? 1 : 0)
+  const currentSourceName =
+    currentFeedConfig.primarySource || (selectedSuperbetLeague ? 'Superbet' : 'Unknown')
+  const currentBookCount = currentFeedConfig.books.length
   const displayLeagueName = (league: League) => leagueLabels[league] || getLeagueName(league)
   const leagueEventCount = (league: League) =>
     superbetLeagues.find((superbetLeague) => superbetLeague.id === league)?.eventCount

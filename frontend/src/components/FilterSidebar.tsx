@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState } from 'react'
-import { SPORTSBOOKS, MARKET_LABELS, MarketType, LEAGUE_DATA_SOURCES } from '@/types/index'
+import { SPORTSBOOKS, MARKET_LABELS, MarketType } from '@/types/index'
+import { getLeagueBooks } from '@/config/feedConfig'
 import { useLeagueStore } from '@store/leagueStore'
 
 interface PlayerOption {
@@ -127,7 +128,7 @@ export function FilterSidebar({
   const selectedLeague = useLeagueStore((s) => s.selectedLeague)
 
   // Get books available for current league
-  const leagueBooks = LEAGUE_DATA_SOURCES[selectedLeague]?.books || [SPORTSBOOKS.SUPERBET]
+  const leagueBooks = getLeagueBooks(selectedLeague)
   const BOOKS = leagueBooks.map((id) => ({
     id,
     name: ALL_BOOKS[id] || `Book ${id}`,

@@ -2,11 +2,10 @@ import { useEffect, useState, useMemo } from 'react'
 import { useOddsStore } from '@store/oddsStore'
 import { useLeagueStore } from '@store/leagueStore'
 import { useFilterStore } from '@store/filterStore'
-import { LEAGUE_DATA_SOURCES, SPORTSBOOKS } from '@/types/index'
 
-import { OddsFetcher } from '@services/oddsFetcher'
-import { SuperbetFetcher } from '@services/superbetFetcher'
-import type { SuperbetBasketballEvent } from '@services/superbetFetcher'
+import { getLeagueBooks } from '@/config/feedConfig'
+import { getSourceAdapter } from '@services/sources'
+import type { SourceEvent } from '@services/sources'
 import { OddsTable } from '@components/OddsTable'
 import { FilterSidebar } from '@components/FilterSidebar'
 import { GamePicker } from '@components/GamePicker'
@@ -14,7 +13,7 @@ import { LeaguePicker } from '@components/LeaguePicker'
 
 export function App() {
   const [gameFilter, setGameFilter] = useState<number[]>([])
-  const [leagueGames, setLeagueGames] = useState<SuperbetBasketballEvent[]>([])
+  const [leagueGames, setLeagueGames] = useState<SourceEvent[]>([])
   const [isLoadingGames, setIsLoadingGames] = useState(false)
 
   const selectedLeague = useLeagueStore((s) => s.selectedLeague)
@@ -39,42 +38,36 @@ export function App() {
   } = useFilterStore()
 
   useEffect(() => {
-    const books = LEAGUE_DATA_SOURCES[selectedLeague]?.books || [SPORTSBOOKS.SUPERBET]
-    setSelectedSportsbooks(books)
+    setSelectedSportsbooks(getLeagueBooks(selectedLeague))
   }, [selectedLeague, setSelectedSportsbooks])
 
   useEffect(() => {
     setGameFilter([])
 
-    const source = LEAGUE_DATA_SOURCES[selectedLeague]
-    const isSuperbetLeague = !source || source.primary !== 'Unabated'
-
-    if (!isSuperbetLeague) {
-      setLeagueGames([])
-      return
-    }
-
-    // For Superbet leagues: fetch games first, then reuse them for odds (single API call)
     let isMounted = true
 
-    const fetchGamesAndOdds = async () => {
-      setIsLoadingGames(true)
+    const fetchFromConfiguredSource = async () => {
+      const adapter = getSourceAdapter(selectedLeague)
       setLoading(true)
-      try {
-        const games = await SuperbetFetcher.fetchBasketballEvents(selectedLeague)
-        if (!isMounted) return
-        setLeagueGames(games)
-        setIsLoadingGames(false)
+      setError(null)
 
-        const normalized = await SuperbetFetcher.fetchAndNormalize(
-          selectedLeague,
-          new Map(),
-          new Map(),
-          games
-        )
+      try {
+        let games: SourceEvent[] = []
+
+        if (adapter.fetchEvents) {
+          setIsLoadingGames(true)
+          games = await adapter.fetchEvents(selectedLeague)
+          if (!isMounted) return
+          setLeagueGames(games)
+        } else {
+          setLeagueGames([])
+        }
+
+        const normalized = await adapter.fetchProps(selectedLeague, {
+          preloadedEvents: games,
+        })
         if (!isMounted) return
         setProps(normalized, selectedLeague)
-        setError(null)
       } catch (err) {
         if (!isMounted) return
         setLeagueGames([])
@@ -87,32 +80,11 @@ export function App() {
       }
     }
 
-    fetchGamesAndOdds()
+    fetchFromConfiguredSource()
 
     return () => {
       isMounted = false
     }
-  }, [selectedLeague, setProps, setLoading, setError])
-
-  // Fetch odds for Unabated leagues
-  useEffect(() => {
-    const source = LEAGUE_DATA_SOURCES[selectedLeague]
-    if (source?.primary !== 'Unabated') return
-
-    const fetchOdds = async () => {
-      setLoading(true)
-      try {
-        const normalized = await OddsFetcher.fetchAndNormalize(selectedLeague)
-        setProps(normalized, selectedLeague)
-        setError(null)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch odds')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchOdds()
   }, [selectedLeague, setProps, setLoading, setError])
 
   // Get props for current league

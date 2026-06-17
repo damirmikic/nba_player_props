@@ -84,7 +84,7 @@ export function OddsTable({
       <div className="bg-white rounded-lg shadow p-8 text-center">
         <p className="text-gray-500">
           {props.length === 0
-            ? 'Loading odds...'
+            ? 'No player props available for this league or game yet.'
             : 'No props match your filters. Try adjusting your selection.'}
         </p>
       </div>
